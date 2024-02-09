@@ -112,6 +112,8 @@ void alternateMergeLinkedList(LinkedList *ll1, LinkedList *ll2)
 	// 순회중인 노드가 비어있지않으면
 	while (ll1_current != NULL && ll2_current != NULL)
 	{
+		/* add your code here */
+
 		// ll1, ll2의  next노드를 저장
 		ll1_next_temp = ll1_current->next;
 		ll2_next_temp = ll2_current->next;

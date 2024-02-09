@@ -15,14 +15,13 @@ typedef struct _listnode
 {
 	int item;
 	struct _listnode *next;
-} ListNode;			// You should not change the definition of ListNode
+} ListNode; // You should not change the definition of ListNode
 
 typedef struct _linkedlist
 {
 	int size;
 	ListNode *head;
-} LinkedList;			// You should not change the definition of LinkedList
-
+} LinkedList; // You should not change the definition of LinkedList
 
 //////////////////////// function prototypes /////////////////////////////////////
 
@@ -31,7 +30,7 @@ void moveEvenItemsToBack(LinkedList *ll);
 
 void printList(LinkedList *ll);
 void removeAllItems(LinkedList *ll);
-ListNode * findNode(LinkedList *ll, int index);
+ListNode *findNode(LinkedList *ll, int index);
 int insertNode(LinkedList *ll, int index, int value);
 int removeNode(LinkedList *ll, int index);
 
@@ -42,10 +41,9 @@ int main()
 	LinkedList ll;
 	int c, i, j;
 	c = 1;
-	//Initialize the linked list 1 as an empty linked list
+	// Initialize the linked list 1 as an empty linked list
 	ll.head = NULL;
 	ll.size = 0;
-
 
 	printf("1: Insert an integer to the linked list:\n");
 	printf("2: Move all even integers to the back of the linked list:\n");
@@ -86,12 +84,47 @@ int main()
 
 void moveEvenItemsToBack(LinkedList *ll)
 {
-	/* add your code here */
+	if (ll->head == NULL || ll->head->next == NULL) // 리스트가 없거나 (head NULL), 요소가 없으면 (next NULL)
+		return;
+
+	ListNode *evenHead = NULL, *evenTail = NULL; // 짝수 노드들을 위한 임시 리스트 (노드 앞뒤로 연결만 해주면 된다)
+	ListNode **pp = &ll->head;					 // List포인터ll이 가리키고있는 포인터head의 주소를 포인터포인터pp에 담음으로써, pp를 통해 head포인터에도 접근이 가능하고(*pp), list포인터에도 접근이 가능하다(**pp)
+
+	while (*pp) // pp에 담긴 주소로 한번만 찾아간다. 그럼 처음에는 head로 찾아가게됨
+	{
+		ListNode *search_p = *pp; // head를 시작으로 탐색
+		if (!(search_p->item % 2))
+		{						  // 짝수 노드 발견
+			*pp = search_p->next; // 원 리스트에서 노드 제거
+
+			// 짝수 노드 리스트에 추가
+			if (evenHead == NULL)
+			{
+				evenHead = evenTail = search_p; // 첫 번째 짝수 노드
+			}
+			else
+			{
+				evenTail->next = search_p; // 뒤에 계속 추가
+				evenTail = search_p;
+			}
+			evenTail->next = NULL; // 짝수 리스트의 마지막 노드는 NULL을 가리킴
+		}
+		else
+		{
+			pp = &search_p->next; // 다음 노드로 이동
+		}
+	}
+
+	if (evenHead)
+	{ // 짝수 노드 리스트가 비어 있지 않으면 원 리스트의 끝에 붙임
+		*pp = evenHead;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
 
-void printList(LinkedList *ll){
+void printList(LinkedList *ll)
+{
 
 	ListNode *cur;
 	if (ll == NULL)
@@ -108,13 +141,13 @@ void printList(LinkedList *ll){
 	printf("\n");
 }
 
-
 void removeAllItems(LinkedList *ll)
 {
 	ListNode *cur = ll->head;
 	ListNode *tmp;
 
-	while (cur != NULL){
+	while (cur != NULL)
+	{
 		tmp = cur->next;
 		free(cur);
 		cur = tmp;
@@ -123,8 +156,8 @@ void removeAllItems(LinkedList *ll)
 	ll->size = 0;
 }
 
-
-ListNode *findNode(LinkedList *ll, int index){
+ListNode *findNode(LinkedList *ll, int index)
+{
 
 	ListNode *temp;
 
@@ -136,7 +169,8 @@ ListNode *findNode(LinkedList *ll, int index){
 	if (temp == NULL || index < 0)
 		return NULL;
 
-	while (index > 0){
+	while (index > 0)
+	{
 		temp = temp->next;
 		if (temp == NULL)
 			return NULL;
@@ -146,7 +180,8 @@ ListNode *findNode(LinkedList *ll, int index){
 	return temp;
 }
 
-int insertNode(LinkedList *ll, int index, int value){
+int insertNode(LinkedList *ll, int index, int value)
+{
 
 	ListNode *pre, *cur;
 
@@ -154,7 +189,8 @@ int insertNode(LinkedList *ll, int index, int value){
 		return -1;
 
 	// If empty list or inserting first node, need to update head pointer
-	if (ll->head == NULL || index == 0){
+	if (ll->head == NULL || index == 0)
+	{
 		cur = ll->head;
 		ll->head = malloc(sizeof(ListNode));
 		ll->head->item = value;
@@ -163,10 +199,10 @@ int insertNode(LinkedList *ll, int index, int value){
 		return 0;
 	}
 
-
 	// Find the nodes before and at the target position
 	// Create a new node and reconnect the links
-	if ((pre = findNode(ll, index - 1)) != NULL){
+	if ((pre = findNode(ll, index - 1)) != NULL)
+	{
 		cur = pre->next;
 		pre->next = malloc(sizeof(ListNode));
 		pre->next->item = value;
@@ -178,8 +214,8 @@ int insertNode(LinkedList *ll, int index, int value){
 	return -1;
 }
 
-
-int removeNode(LinkedList *ll, int index){
+int removeNode(LinkedList *ll, int index)
+{
 
 	ListNode *pre, *cur;
 
@@ -188,7 +224,8 @@ int removeNode(LinkedList *ll, int index){
 		return -1;
 
 	// If removing first node, need to update head pointer
-	if (index == 0){
+	if (index == 0)
+	{
 		cur = ll->head->next;
 		free(ll->head);
 		ll->head = cur;
@@ -199,7 +236,8 @@ int removeNode(LinkedList *ll, int index){
 
 	// Find the nodes before and after the target position
 	// Free the target node and reconnect the links
-	if ((pre = findNode(ll, index - 1)) != NULL){
+	if ((pre = findNode(ll, index - 1)) != NULL)
+	{
 
 		if (pre->next == NULL)
 			return -1;
