@@ -103,6 +103,35 @@ int main()
 void frontBackSplitLinkedList(LinkedList *ll, LinkedList *resultFrontList, LinkedList *resultBackList)
 {
 	/* add your code here */
+	ListNode *temp;     // 현재 노드를 가리키는 포인터
+	int fixsize = ll->size;   // 연결 리스트의 크기를 저장하는 변수
+	int i;
+
+// 연결 리스트의 크기가 홀수인 경우
+if (fixsize % 2 == 1) {
+    // 연결 리스트를 반으로 나누어서 앞쪽 부분과 뒤쪽 부분을 각각의 결과 리스트에 삽입
+    for (i = 0; i <= fixsize / 2; i++) {  // 앞쪽 부분을 반복하여 결과 리스트에 삽입
+        temp = findNode(ll, i);    // 현재 인덱스에 해당하는 노드를 찾음
+        insertNode(resultFrontList, i, temp->item);    // 결과 리스트의 해당 위치에 항목 삽입
+    }
+    for (i = 1 + fixsize / 2; i < fixsize; i++) {  // 뒤쪽 부분을 반복하여 결과 리스트에 삽입
+        temp = findNode(ll, i);    // 현재 인덱스에 해당하는 노드를 찾음
+        insertNode(resultBackList, i - 1 - fixsize / 2, temp->item);    // 결과 리스트의 해당 위치에 항목 삽입
+    }
+}
+// 연결 리스트의 크기가 짝수인 경우
+else {
+    // 연결 리스트를 반으로 나누어서 앞쪽 부분과 뒤쪽 부분을 각각의 결과 리스트에 삽입
+    for (i = 0; i < fixsize / 2; i++) {   // 앞쪽 부분을 반복하여 결과 리스트에 삽입
+        temp = findNode(ll, i);    // 현재 인덱스에 해당하는 노드를 찾음
+        insertNode(resultFrontList, i, temp->item);    // 결과 리스트의 해당 위치에 항목 삽입
+    }
+    for (i = fixsize / 2; i < fixsize; i++) {   // 뒤쪽 부분을 반복하여 결과 리스트에 삽입
+        temp = findNode(ll, i);    // 현재 인덱스에 해당하는 노드를 찾음
+        insertNode(resultBackList, i - 1 + fixsize / 2, temp->item);    // 결과 리스트의 해당 위치에 항목 삽입
+    }
+}
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////

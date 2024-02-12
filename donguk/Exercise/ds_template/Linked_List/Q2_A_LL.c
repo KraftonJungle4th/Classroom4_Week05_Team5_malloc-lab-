@@ -103,7 +103,29 @@ int main()
 
 void alternateMergeLinkedList(LinkedList *ll1, LinkedList *ll2)
 {
-    /* add your code here */
+	/* add your code here */
+	ListNode *temp;         // 임시로 사용할 연결 리스트 노드를 가리키는 포인터
+	int fixsize1 = ll1->size;   // ll1의 크기를 저장하는 변수
+	int fixsize2 = ll2->size;   // ll2의 크기를 저장하는 변수
+	int inspos = 1;          // ll1에 삽입할 위치를 나타내는 변수, 처음에는 두 번째 위치(인덱스 1)에 삽입
+
+	if (fixsize1 >= fixsize2) {     // ll1의 크기가 ll2의 크기보다 크거나 같은 경우
+		while (ll2->size > 0) {     // ll2의 크기가 0보다 클 때까지 반복
+			temp = findNode(ll2, 0);    // ll2의 첫 번째 노드를 찾아서 temp에 저장
+			insertNode(ll1, inspos, temp->item);    // ll1의 inspos 위치에 temp의 값을 삽입
+			removeNode(ll2, 0);     // ll2의 첫 번째 노드를 제거
+			inspos = inspos + 2;    // ll1에 다음 요소를 삽입할 위치를 업데이트, 여기서는 두 칸씩 건너뛰며 삽입
+		}
+	} else {    // ll1의 크기가 ll2의 크기보다 작은 경우
+		while (fixsize1 > 0) {  // fixsize1이 0보다 클 때까지 반복
+			temp = findNode(ll2, 0);    // ll2의 첫 번째 노드를 찾아서 temp에 저장
+			insertNode(ll1, inspos, temp->item);    // ll1의 inspos 위치에 temp의 값을 삽입
+			removeNode(ll2, 0);     // ll2의 첫 번째 노드를 제거
+			inspos = inspos + 2;    // ll1에 다음 요소를 삽입할 위치를 업데이트, 여기서는 두 칸씩 건너뛰며 삽입
+			fixsize1 = fixsize1 - 1;    // ll1의 크기를 감소시킴
+		}
+	}
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
