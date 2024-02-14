@@ -50,6 +50,7 @@ int main()
 	printf("2: Print the index of the most recent input value:\n");
 	printf("3: Print sorted linked list:\n");
 	printf("0: Quit:");
+	printf("test: good!");
 
 	while (c != 0)
 	{
@@ -105,13 +106,16 @@ int insertSortedLL(LinkedList *ll, int item)
     else {              // 입력된 연결 리스트가 NULL이 아닌 경우,
         temp = ll->head;    // temp를 입력된 연결 리스트의 헤드로 초기화합니다.
 
-        while(curindex <= ll->size) {   // 현재 인덱스가 연결 리스트의 크기보다 작거나 같은 동안 반복합니다.
+        while(curindex <= ll->size) {   // 현재 인덱스가 연결 리스트의 크기보다 작거나 같은 동안 반복합니다. // + curindex는 반드시 리스트의 사이즈보다 같거나 작을 것이기 때문 
             if(curindex == ll->size) {  // 현재 인덱스가 연결 리스트의 크기와 같은 경우,
                 // 리스트의 맨 끝에 새 항목을 추가하고 반복문을 종료합니다.
                 insertNode(ll, curindex, item);
                 break;
             }
             else {  // 그렇지 않은 경우,
+
+				// + 코드 이해를 위해서는 else문부터 else if, if 순으로 설명하기!!
+
                 if(temp->item > item) { // 현재 노드의 값이 삽입하려는 값보다 큰 경우,
                     // 현재 위치에 새 항목을 삽입하고 반복문을 종료합니다.
                     insertNode(ll, curindex, item);
@@ -159,7 +163,7 @@ void removeAllItems(LinkedList *ll)
 
 	while (cur != NULL){
 		tmp = cur->next;
-		free(cur);
+		free(cur); // + free를 통해 아이템 삭제.
 		cur = tmp;
 	}
 	ll->head = NULL;
@@ -171,19 +175,19 @@ ListNode *findNode(LinkedList *ll, int index){
 
 	ListNode *temp;
 
-	if (ll == NULL || index < 0 || index >= ll->size)
+	if (ll == NULL || index < 0 || index >= ll->size) // + 인덱스 범위가 리스트 크기를 벗어나거나 리스트가 null일 경우
 		return NULL;
 
 	temp = ll->head;
 
-	if (temp == NULL || index < 0)
+	if (temp == NULL || index < 0) // + index가 0인지는 중복해서 체크 하므로 없어져도 될 것 같다.
 		return NULL;
 
 	while (index > 0){
 		temp = temp->next;
 		if (temp == NULL)
 			return NULL;
-		index--;
+		index--; // + index를 점차 감소시킴으로써 마침내 원하는 index를 찾았을 때에는 0이 되므로 while문을 빠져나오게 된다!
 	}
 
 	return temp;

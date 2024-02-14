@@ -86,7 +86,7 @@ int main()
 
 ////////////////////////////////////////////////////////////////////////
 
-int moveMaxToFront(ListNode **ptrHead)
+int moveMaxToFront(ListNode **ptrHead) // + ListNode를 가리키는 포인터들을 가리키는 포인터들의 리스트
 {
     /* add your code here */
 	ListNode *temp;      // 현재 노드를 가리키는 포인터
@@ -115,7 +115,7 @@ else{
         // front의 다음 노드가 max가 아닌 경우
         front= front->next;      // front를 다음 노드로 이동합니다.
     }
-    front->next = max->next;     // max 노드를 리스트에서 제거합니다.
+    front->next = max->next;     // max 노드 앞에 있는 노드와 max노드 뒤에 있는 노드를 연결
     max->next = temp;            // max 노드를 리스트의 맨 앞으로 이동시킵니다.
     *ptrHead = max;              // ptrHead가 max를 가리키도록 갱신합니다.
 }

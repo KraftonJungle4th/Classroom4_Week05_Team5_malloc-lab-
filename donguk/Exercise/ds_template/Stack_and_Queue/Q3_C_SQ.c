@@ -104,6 +104,33 @@ int main()
 int isStackPairwiseConsecutive(Stack *s)
 {
   /* add your code here */
+
+	// size가 홀수이면 무조건 0 반환
+	int size = s->ll.size;
+	int a;
+	int b;
+	if (size % 2 != 0){
+		return -1;
+	} else{
+		// size 짝수이면
+		// 1차이나는 연속적인 수인지 확인해보기
+		for(int i = 0; i < size / 2; i++){
+				a = pop(s);
+				b = pop(s);
+				if(abs(a-b) != 1){
+					return 0;
+				}
+		}
+		return 1;
+	}
+	
+
+
+
+
+
+
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////

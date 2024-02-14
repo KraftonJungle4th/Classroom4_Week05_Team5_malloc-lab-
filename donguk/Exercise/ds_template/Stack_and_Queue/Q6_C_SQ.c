@@ -112,6 +112,19 @@ int main()
 void removeUntil(Stack *s, int value)
 {
 /* add your code here */
+// value 이전까지 다지우기
+
+int size = s->ll.size;
+
+for(int i=0; i <size; i++){
+	int temp = peek(s);
+	if (temp == value){
+		break;
+	} else {
+		pop(s);
+	}
+}
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////

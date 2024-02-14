@@ -117,11 +117,42 @@ int main()
 void createQueueFromLinkedList(LinkedList *ll, Queue *q)
 {
 	/* add your code here */
+
+	// LinkedList가 Null인지 확인
+	if (ll != NULL){
+
+		// LinkedList를 순회하며 insertNode 사용 해서 q에 노드를 insert
+		
+		ListNode *temp = ll->head;
+		
+		for(int i=0; i < ll->size; i++){
+			enqueue(q, temp->item);
+			temp = temp->next;
+		}
+	
+	}
+
+	
 }
 
 void removeOddValues(Queue *q)
 {
 	/* add your code here */
+	ListNode *temp = q->ll.head;
+	int size = q->ll.size;
+
+
+
+	for(int i=0; i < size; i++){
+		int item = dequeue(q); 
+		if (item % 2 == 0){
+			enqueue(q, item);
+		}
+	}
+
+
+	
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////
