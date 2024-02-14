@@ -11,21 +11,23 @@ Purpose: Implementing the required functions for Question 2 */
 
 //////////////////////////////////////////////////////////////////////////////////
 
-typedef struct _bstnode{
+typedef struct _bstnode
+{
 	int item;
 	struct _bstnode *left;
 	struct _bstnode *right;
-} BSTNode;   // You should not change the definition of BSTNode
+} BSTNode; // You should not change the definition of BSTNode
 
-typedef struct _stackNode{
+typedef struct _stackNode
+{
 	BSTNode *data;
 	struct _stackNode *next;
-}StackNode; // You should not change the definition of StackNode
+} StackNode; // You should not change the definition of StackNode
 
 typedef struct _stack
 {
 	StackNode *top;
-}Stack; // You should not change the definition of Stack
+} Stack; // You should not change the definition of Stack
 
 ///////////////////////// function prototypes ////////////////////////////////////
 
@@ -47,14 +49,13 @@ int main()
 	int c, i;
 	c = 1;
 
-	//Initialize the Binary Search Tree as an empty Binary Search Tree
+	// Initialize the Binary Search Tree as an empty Binary Search Tree
 	BSTNode *root;
 	root = NULL;
 
 	printf("1: Insert an integer into the binary search tree;\n");
 	printf("2: Print the in-order traversal of the binary search tree;\n");
 	printf("0: Quit;\n");
-
 
 	while (c != 0)
 	{
@@ -80,7 +81,6 @@ int main()
 			printf("Choice unknown;\n");
 			break;
 		}
-
 	}
 
 	return 0;
@@ -88,19 +88,80 @@ int main()
 
 //////////////////////////////////////////////////////////////////////////////////
 
+// ?????
 void inOrderTraversal(BSTNode *root)
 {
-	 /* add your code here */
+	/* add your code here */
+
+	// if (root == NULL)
+	// 	return;
+
+	// Stack new_s;
+	// new_s.top = NULL;
+	// Stack *new_s_p = &new_s;
+
+	// // 스택이 비어있지 않거나 temp가 NULL이 아닌 동안 반복합니다.
+	// while (new_s_p->top != NULL)
+	// {
+	// 	push(new_s_p, &root);
+	// 	root = temp->left;
+
+	// 	// 스택에서 하나의 노드를 pop합니다.
+	// 	temp = pop(new_s_p);
+	// 	printf("%d ", temp->item); // 현재 노드를 처리합니다.
+
+	// 	// 오른쪽 서브트리로 이동합니다.
+	// 	temp = temp->right;
+	// }
+
+	/* add your code here */
+	Stack s;
+	s.top = NULL;
+	BSTNode *temp;
+	temp = root;
+
+	if (temp == NULL)
+	{
+	}
+	else
+	{
+		while (1)
+		{
+			// 루트를 넣고 왼쪽으로
+			if (temp != NULL)
+			{
+				push(&s, temp);
+				temp = temp->left;
+			}
+			// 왼쪽 항목을 다 넣었으면
+			else
+			{
+				// 빌 때까지 뺀다.
+				if (!isEmpty(&s))
+				{
+					temp = pop(&s);
+					printf("%d", temp->item);
+					temp = temp->right;
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void insertBSTNode(BSTNode **node, int value){
+void insertBSTNode(BSTNode **node, int value)
+{
 	if (*node == NULL)
 	{
 		*node = malloc(sizeof(BSTNode));
 
-		if (*node != NULL) {
+		if (*node != NULL)
+		{
 			(*node)->item = value;
 			(*node)->left = NULL;
 			(*node)->right = NULL;
@@ -112,7 +173,7 @@ void insertBSTNode(BSTNode **node, int value){
 		{
 			insertBSTNode(&((*node)->left), value);
 		}
-		else if (value >(*node)->item)
+		else if (value > (*node)->item)
 		{
 			insertBSTNode(&((*node)->right), value);
 		}
@@ -123,7 +184,7 @@ void insertBSTNode(BSTNode **node, int value){
 
 //////////////////////////////////////////////////////////////////////////////////
 
-void push(Stack *stack, BSTNode * node)
+void push(Stack *stack, BSTNode *node)
 {
 	StackNode *temp;
 
@@ -145,10 +206,10 @@ void push(Stack *stack, BSTNode * node)
 	}
 }
 
-BSTNode * pop(Stack * s)
+BSTNode *pop(Stack *s)
 {
 	StackNode *temp, *t;
-	BSTNode * ptr;
+	BSTNode *ptr;
 	ptr = NULL;
 
 	t = s->top;
@@ -165,7 +226,7 @@ BSTNode * pop(Stack * s)
 	return ptr;
 }
 
-BSTNode * peek(Stack * s)
+BSTNode *peek(Stack *s)
 {
 	StackNode *temp;
 	temp = s->top;
@@ -182,7 +243,6 @@ int isEmpty(Stack *s)
 	else
 		return 0;
 }
-
 
 void removeAll(BSTNode **node)
 {
