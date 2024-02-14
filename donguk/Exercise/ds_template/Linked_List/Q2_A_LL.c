@@ -231,7 +231,7 @@ int removeNode(LinkedList *ll, int index){
 		cur = ll->head->next;
 		free(ll->head);
 		ll->head = cur;
-		ll->size--;
+		ll->size--; // + li가 포인터 주소이므로 주소로 접근하면 값을 바꿀 수 있다.
 
 		return 0;
 	}

@@ -96,7 +96,7 @@ void moveOddItemsToBack(LinkedList *ll)
 
 	// 연결 리스트를 반복하여 홀수 항목의 개수를 세는 과정
 	while (temp != NULL) {
-		if (temp->item % 2 == 1 || temp->item % 2 == -1) {  // 현재 노드의 항목이 홀수인 경우
+		if (temp->item % 2 == 1 || temp->item % 2 == -1) {  // 현재 노드의 항목이 홀수인 경우 // + 음수인 홀수도 체크
 			oddcount++;    // 홀수 항목 개수 증가
 		}
 		temp = temp->next;    // 다음 노드로 이동
