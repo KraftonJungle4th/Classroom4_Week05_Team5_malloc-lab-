@@ -87,6 +87,36 @@ int main()
 void moveEvenItemsToBack(LinkedList *ll)
 {
 	/* add your code here */
+ListNode *temp;     // 현재 노드를 가리키는 포인터
+temp = ll->head;    // 연결 리스트의 첫 번째 노드로 초기화
+int evencount = 0;   // 짝수 항목의 개수를 저장하는 변수
+int i;
+int evenindex = 0;   // 짝수 항목의 인덱스를 저장하는 변수
+int evenitem;        // 짝수 항목을 임시로 저장하는 변수
+
+// 연결 리스트를 반복하여 짝수 항목의 개수를 세는 과정
+while (temp != NULL) {
+    if (temp->item % 2 == 0) {  // 현재 노드의 항목이 짝수인 경우
+        evencount++;    // 짝수 항목 개수 증가
+    }
+    temp = temp->next;    // 다음 노드로 이동
+}
+
+temp = ll->head;    // 연결 리스트의 첫 번째 노드로 다시 초기화
+
+// 짝수 항목들을 연결 리스트의 끝으로 이동시키는 과정
+for (i = 0; i < evencount; i++) {     // 짝수 항목의 개수만큼 반복
+    while (temp->item % 2 != 0) {    // 현재 노드의 항목이 짝수가 아닌 경우
+        temp = temp->next;    // 다음 노드로 이동
+        evenindex = evenindex + 1;    // 짝수 항목의 인덱스 증가
+    }
+    evenitem = temp->item;    // 현재 노드의 짝수 항목을 evenitem에 저장
+    removeNode(ll, evenindex);    // 연결 리스트에서 짝수 항목을 삭제
+    insertNode(ll, ll->size, evenitem);    // 짝수 항목을 연결 리스트의 끝에 삽입
+    temp = ll->head;    // 연결 리스트의 첫 번째 노드로 초기화
+    evenindex = 0;    // 짝수 항목의 인덱스 초기화
+}
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////

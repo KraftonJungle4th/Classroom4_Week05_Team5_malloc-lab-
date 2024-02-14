@@ -87,6 +87,35 @@ int main()
 void moveOddItemsToBack(LinkedList *ll)
 {
 	/* add your code here */
+	ListNode *temp;     // 현재 노드를 가리키는 포인터
+	temp = ll->head;    // 연결 리스트의 첫 번째 노드로 초기화
+	int oddcount = 0;   // 홀수 항목의 개수를 저장하는 변수
+	int i;
+	int oddindex = 0;   // 홀수 항목의 인덱스를 저장하는 변수
+	int odditem;        // 홀수 항목을 임시로 저장하는 변수
+
+	// 연결 리스트를 반복하여 홀수 항목의 개수를 세는 과정
+	while (temp != NULL) {
+		if (temp->item % 2 == 1 || temp->item % 2 == -1) {  // 현재 노드의 항목이 홀수인 경우
+			oddcount++;    // 홀수 항목 개수 증가
+		}
+		temp = temp->next;    // 다음 노드로 이동
+	}
+
+	temp = ll->head;    // 연결 리스트의 첫 번째 노드로 다시 초기화
+
+	// 홀수 항목들을 연결 리스트의 끝으로 이동시키는 과정
+	for (i = 0; i < oddcount; i++) {     // 홀수 항목의 개수만큼 반복
+		while (temp->item % 2 != 1 && temp->item % 2 != -1) {    // 현재 노드의 항목이 홀수가 아닌 경우
+			temp = temp->next;    // 다음 노드로 이동
+			oddindex = oddindex + 1;    // 홀수 항목의 인덱스 증가
+		}
+		odditem = temp->item;    // 현재 노드의 홀수 항목을 odditem에 저장
+		removeNode(ll, oddindex);    // 연결 리스트에서 홀수 항목을 삭제
+		insertNode(ll, ll->size, odditem);    // 홀수 항목을 연결 리스트의 끝에 삽입
+		temp = ll->head;    // 연결 리스트의 첫 번째 노드로 초기화
+		oddindex = 0;    // 홀수 항목의 인덱스 초기화
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
