@@ -1,0 +1,7 @@
+함수 ListNode, *first, *rest;
+만약 NULL이면 바로 return;
+...
+함수 내부: recursive(&rest);
+first->next->next = first;
+first->next = NULL;
+*ptrHead = rest;
