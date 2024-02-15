@@ -90,8 +90,30 @@ int main()
 
 void postOrderIterativeS2(BSTNode *root)
 {
-	 /* add your code here */
+    Stack s1; // 첫 번째 스택 생성
+    Stack s2; // 두 번째 스택 생성
+    BSTNode *temp; // 임시 노드 변수 선언
+    
+    s1.top = NULL; // 첫 번째 스택 초기화
+    s2.top = NULL; // 두 번째 스택 초기화
+    temp = root; // 루트 노드를 임시 노드에 할당
+    
+    if(temp == NULL){} // 루트 노드가 비어있는 경우 (종료)
+    else{
+        push(&s1, temp); // 루트 노드를 첫 번째 스택에 추가
+        while(!isEmpty(&s1)){ // 첫 번째 스택이 비어있지 않은 동안
+            temp = pop(&s1); // 첫 번째 스택에서 노드를 꺼내서 temp에 할당
+            push(&s2,temp); // 두 번째 스택에 노드를 추가
+            if(temp->left != NULL) push(&s1, temp->left); // 왼쪽 자식 노드가 있으면 첫 번째 스택에 추가
+            if(temp->right != NULL) push(&s1, temp->right); // 오른쪽 자식 노드가 있으면 첫 번째 스택에 추가
+        }
+        while(!isEmpty(&s2)){ // 두 번째 스택이 비어있지 않은 동안
+            temp = pop(&s2); // 두 번째 스택에서 노드를 꺼내서 temp에 할당
+            printf("%d",temp->item); // 노드의 값을 출력
+        }
+    }
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 

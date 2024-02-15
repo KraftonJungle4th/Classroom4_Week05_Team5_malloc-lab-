@@ -37,7 +37,6 @@ BTNode *createBTNode(int item);
 BTNode *createTree();
 void push( Stack *stk, BTNode *node);
 BTNode* pop(Stack *stk);
-
 void printTree(BTNode *node);
 void removeAll(BTNode **node);
 
@@ -98,6 +97,17 @@ int maxHeight(BTNode *node)
 
 {
     /* add your code here */
+    int left;
+    int right;
+    if(node == NULL) return -1;
+    else{
+        left = maxHeight(node->left);
+        right = maxHeight(node->right);
+        if(left > right) return left + 1;
+        else{
+            return right+1;
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////

@@ -91,8 +91,38 @@ int main()
 
 void postOrderIterativeS1(BSTNode *root)
 {
-	 /* add your code here */
+   	 Stack s;
+	 s.top = NULL;
+	 BSTNode *temp;
+	 temp = root;
+    
+    if (temp == NULL) // 루트 노드가 비어있는 경우
+        return; // 함수 종료
+    
+    do
+    {
+        while (temp) // 현재 노드가 NULL이 아닌 동안
+        {
+            if (temp->right) // 오른쪽 자식 노드가 있는 경우
+                push(&s, temp->right); // 오른쪽 자식 노드를 스택에 추가
+            push(&s, temp); // 현재 노드를 스택에 추가
+            temp = temp->left; // 왼쪽 자식 노드로 이동
+        }
+        temp = pop(&s); // 스택에서 노드를 꺼내서 temp에 할당
+        if (temp->right && peek(&s) == temp->right) // 현재 노드의 오른쪽 자식이 있고, 스택의 top이 오른쪽 자식인 경우
+        {
+            pop(&s); // 스택에서 오른쪽 자식 제거
+            push(&s, temp); // 현재 노드를 스택에 추가
+            temp = temp->right; // 오른쪽 자식으로 이동
+        }
+        else
+        {
+            printf("%d ", temp->item); // 현재 노드의 값을 출력
+            temp = NULL; // temp를 NULL로 설정하여 루프 종료
+        }
+    } while (!isEmpty(&s)); // 스택이 비어있지 않은 동안 반복
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 
