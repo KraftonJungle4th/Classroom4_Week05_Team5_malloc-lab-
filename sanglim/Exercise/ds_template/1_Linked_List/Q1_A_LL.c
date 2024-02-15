@@ -2,7 +2,7 @@
 
 /* CE1007/CZ1007 Data Structures
 Lab Test: Section A - Linked List Questions
-Purpose: Implementing the required functions for Question 2 */
+Purpose: Implementing the required functions for Question 1 */
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -23,11 +23,11 @@ typedef struct _linkedlist
 	ListNode *head;
 } LinkedList; // You should not change the definition of LinkedList
 
-//////////////////////// function prototypes /////////////////////////////////////
+///////////////////////// function prototypes ////////////////////////////////////
 
 // You should not change the prototype of this function
-void alternateMergeLinkedList(LinkedList *ll1, LinkedList *ll2);
 
+int insertSortedLL(LinkedList *ll, int item);
 void printList(LinkedList *ll);
 void removeAllItems(LinkedList *ll);
 ListNode *findNode(LinkedList *ll, int index);
@@ -38,56 +38,43 @@ int removeNode(LinkedList *ll, int index);
 
 int main()
 {
-	LinkedList ll1, ll2;
+	LinkedList ll;
 	int c, i, j;
 	c = 1;
+
 	// Initialize the linked list 1 as an empty linked list
-	ll1.head = NULL;
-	ll1.size = 0;
+	ll.head = NULL;
+	ll.size = 0;
 
-	// Initialize the linked list 2 as an empty linked list
-	ll2.head = NULL;
-	ll2.size = 0;
-
-	printf("1: Insert an integer to the linked list 1:\n");
-	printf("2: Insert an integer to the linked list 2:\n");
-	printf("3: Create the alternate merged linked list:\n");
-	printf("0: Quit:\n");
+	printf("1: Insert an integer to the sorted linked list:\n");
+	printf("2: Print the index of the most recent input value:\n");
+	printf("3: Print sorted linked list:\n");
+	printf("0: Quit:");
 
 	while (c != 0)
 	{
-		printf("Please input your choice(1/2/3/0): ");
+		printf("\nPlease input your choice(1/2/3/0): ");
 		scanf("%d", &c);
 
 		switch (c)
 		{
 		case 1:
-			printf("Input an integer that you want to add to the linked list 1: ");
+			printf("Input an integer that you want to add to the linked list: ");
 			scanf("%d", &i);
-			j = insertNode(&ll1, ll1.size, i);
-			printf("Linked list 1: ");
-			printList(&ll1);
+			j = insertSortedLL(&ll, i);
+			printf("The resulting linked list is: ");
+			printList(&ll);
 			break;
 		case 2:
-			printf("Input an integer that you want to add to the linked list 2: ");
-			scanf("%d", &i);
-			j = insertNode(&ll2, ll2.size, i);
-			printf("Linked list 2: ");
-			printList(&ll2);
+			printf("The value %d was added at index %d\n", i, j);
 			break;
 		case 3:
-			printf("The resulting linked lists after merging the given linked list are:\n");
-			alternateMergeLinkedList(&ll1, &ll2); // You need to code this function
-			printf("The resulting linked list 1: ");
-			printList(&ll1);
-			printf("The resulting linked list 2: ");
-			printList(&ll2);
-			removeAllItems(&ll1);
-			removeAllItems(&ll2);
+			printf("The resulting sorted linked list is: ");
+			printList(&ll);
+			removeAllItems(&ll);
 			break;
 		case 0:
-			removeAllItems(&ll1);
-			removeAllItems(&ll2);
+			removeAllItems(&ll);
 			break;
 		default:
 			printf("Choice unknown;\n");
@@ -99,36 +86,30 @@ int main()
 
 //////////////////////////////////////////////////////////////////////////////////
 
-void alternateMergeLinkedList(LinkedList *ll1, LinkedList *ll2)
+int insertSortedLL(LinkedList *ll, int item)
 {
-	// 순회를 위한 리스트노드포인터 생성
-	ListNode *ll1_current = ll1->head;
-	ListNode *ll2_current = ll2->head;
+	/* add your code here */
 
-	// next노드를 임시로 저장할 리스트노드포인터 생성
-	ListNode *ll1_next_temp = NULL;
-	ListNode *ll2_next_temp = NULL;
+	// 빈 리스트 검사
+	if (ll == NULL)
+		return -1;
 
-	// 순회중인 노드가 비어있지않으면
-	while (ll1_current != NULL && ll2_current != NULL)
+	int counter = 0;
+
+	// 노드 탐색을 위한 temp 지정
+	ListNode *temp = ll->head;
+	// 빈 노드를 만나거나, 주어진 item값보다 작을때까지
+	while (temp != NULL && temp->item < item)
 	{
-		/* add your code here */
-
-		// ll1, ll2의  next노드를 저장
-		ll1_next_temp = ll1_current->next;
-		ll2_next_temp = ll2_current->next;
-
-		// ll1의 특정노드 다음에 ll2의 노드가 저장되어야 함 (번갈아)
-		ll1_current->next = ll2_current;
-		ll2_current->next = ll1_next_temp;
-
-		// ll1, ll2의 current노드를 next노드로 이동시켜 탐색 지속
-		ll1_current = ll1_next_temp;
-		ll2_current = ll2_next_temp;
+		// temp를 옮겨가면서 탐색
+		temp = temp->next;
+		counter++;
 	}
+	// 딱 맞는 곳에 삽입
+	// index와 value를 통해 LinkedList에 집어넣는 함수
+	insertNode(ll, counter, item);
 
-	// ll2의 남는 리스트 중 첫째를 head로 삼음
-	ll2->head = ll2_current;
+	return counter;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////

@@ -2,7 +2,7 @@
 
 /* CE1007/CZ1007 Data Structures
 Lab Test: Section A - Linked List Questions
-Purpose: Implementing the required functions for Question 3 */
+Purpose: Implementing the required functions for Question 2 */
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -26,7 +26,7 @@ typedef struct _linkedlist
 //////////////////////// function prototypes /////////////////////////////////////
 
 // You should not change the prototype of this function
-void moveOddItemsToBack(LinkedList *ll);
+void alternateMergeLinkedList(LinkedList *ll1, LinkedList *ll2);
 
 void printList(LinkedList *ll);
 void removeAllItems(LinkedList *ll);
@@ -38,39 +38,56 @@ int removeNode(LinkedList *ll, int index);
 
 int main()
 {
-	LinkedList ll;
+	LinkedList ll1, ll2;
 	int c, i, j;
 	c = 1;
 	// Initialize the linked list 1 as an empty linked list
-	ll.head = NULL;
-	ll.size = 0;
+	ll1.head = NULL;
+	ll1.size = 0;
 
-	printf("1: Insert an integer to the linked list:\n");
-	printf("2: Move all odd integers to the back of the linked list:\n");
+	// Initialize the linked list 2 as an empty linked list
+	ll2.head = NULL;
+	ll2.size = 0;
+
+	printf("1: Insert an integer to the linked list 1:\n");
+	printf("2: Insert an integer to the linked list 2:\n");
+	printf("3: Create the alternate merged linked list:\n");
 	printf("0: Quit:\n");
 
 	while (c != 0)
 	{
-		printf("Please input your choice(1/2/0): ");
+		printf("Please input your choice(1/2/3/0): ");
 		scanf("%d", &c);
 
 		switch (c)
 		{
 		case 1:
-			printf("Input an integer that you want to add to the linked list: ");
+			printf("Input an integer that you want to add to the linked list 1: ");
 			scanf("%d", &i);
-			j = insertNode(&ll, ll.size, i);
-			printf("The resulting linked list is: ");
-			printList(&ll);
+			j = insertNode(&ll1, ll1.size, i);
+			printf("Linked list 1: ");
+			printList(&ll1);
 			break;
 		case 2:
-			moveOddItemsToBack(&ll); // You need to code this function
-			printf("The resulting linked list after moving odd integers to the back of the linked list is: ");
-			printList(&ll);
-			removeAllItems(&ll);
+			printf("Input an integer that you want to add to the linked list 2: ");
+			scanf("%d", &i);
+			j = insertNode(&ll2, ll2.size, i);
+			printf("Linked list 2: ");
+			printList(&ll2);
+			break;
+		case 3:
+			printf("The resulting linked lists after merging the given linked list are:\n");
+			alternateMergeLinkedList(&ll1, &ll2); // You need to code this function
+			printf("The resulting linked list 1: ");
+			printList(&ll1);
+			printf("The resulting linked list 2: ");
+			printList(&ll2);
+			removeAllItems(&ll1);
+			removeAllItems(&ll2);
 			break;
 		case 0:
-			removeAllItems(&ll);
+			removeAllItems(&ll1);
+			removeAllItems(&ll2);
 			break;
 		default:
 			printf("Choice unknown;\n");
@@ -82,49 +99,53 @@ int main()
 
 //////////////////////////////////////////////////////////////////////////////////
 
-void moveOddItemsToBack(LinkedList *ll)
+void alternateMergeLinkedList(LinkedList *ll1, LinkedList *ll2)
 {
-	if (ll->head == NULL || ll->head->next == NULL) // 리스트가 없거나 (head NULL), 요소가 없으면 (next NULL)
+	/* add your code here */
+
+	// 빈 리스트 검사
+	if (ll1 == NULL)
+	{
+		ll1 = ll2;
+		return;
+	}
+
+	if (ll2 == NULL)
 		return;
 
-	ListNode *oddHead = NULL, *oddTail = NULL; // 짝수 노드들을 위한 임시 리스트 (노드 앞뒤로 연결만 해주면 된다)
-	ListNode **pp = &ll->head;				   // List포인터ll이 가리키고있는 포인터head의 주소를 포인터포인터pp에 담음으로써, pp를 통해 head포인터에도 접근이 가능하고(*pp), list포인터에도 접근이 가능하다(**pp)
+	// 순회를 위한 리스트노드포인터 생성
+	ListNode *temp1_current = ll1->head;
+	ListNode *temp2_current = ll2->head;
 
-	while (*pp) // pp에 담긴 주소로 한번만 찾아간다. 그럼 처음에는 head로 찾아가게됨
+	// next노드를 임시로 저장할 리스트노드포인터 생성
+	ListNode *temp1_next = NULL;
+	ListNode *temp2_next = NULL;
+
+	// 순회중인 노드가 비어있지않으면
+	while (temp1_current != NULL && temp2_current != NULL)
 	{
-		ListNode *search_p = *pp; // head를 시작으로 탐색
-		if (search_p->item % 2)
-		{						  // 홀수 노드 발견
-			*pp = search_p->next; // 원 리스트에서 노드 제거
+		// ll1, ll2의  next노드를 저장
+		temp1_next = temp1_current->next;
+		temp2_next = temp2_current->next;
 
-			// 짝수 노드 리스트에 추가
-			if (oddHead == NULL)
-			{
-				oddHead = oddTail = search_p; // 첫 번째 짝수 노드
-			}
-			else
-			{
-				oddTail->next = search_p; // 뒤에 계속 추가
-				oddTail = search_p;
-			}
-			oddTail->next = NULL; // 짝수 리스트의 마지막 노드는 NULL을 가리킴
-		}
-		else
-		{
-			pp = &search_p->next; // 다음 노드로 이동
-		}
+		// ll1의 특정노드 다음은 ll2노드가 저장 (번갈아)
+		temp1_current->next = temp2_current;
+		temp2_current->next = temp1_next;
+
+		// current노드를 next노드로 이동
+		temp1_current = temp1_next;
+		temp2_current = temp2_next;
 	}
 
-	if (oddHead)
-	{ // 짝수 노드 리스트가 비어 있지 않으면 원 리스트의 끝에 붙임
-		*pp = oddHead;
-	}
+	// ll2의 남는 리스트 중 첫째를 ll2의head로 삼음
+	ll2->head = temp2_current;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
 
 void printList(LinkedList *ll)
 {
+
 	ListNode *cur;
 	if (ll == NULL)
 		return;
