@@ -101,34 +101,44 @@ int main()
 
 void alternateMergeLinkedList(LinkedList *ll1, LinkedList *ll2)
 {
-	// 순회를 위한 리스트노드포인터 생성
-	ListNode *ll1_current = ll1->head;
-	ListNode *ll2_current = ll2->head;
+	/* add your code here */
 
-	// next노드를 임시로 저장할 리스트노드포인터 생성
-	ListNode *ll1_next_temp = NULL;
-	ListNode *ll2_next_temp = NULL;
-
-	// 순회중인 노드가 비어있지않으면
-	while (ll1_current != NULL && ll2_current != NULL)
+	// 빈 리스트 검사
+	if (ll1 == NULL)
 	{
-		/* add your code here */
-
-		// ll1, ll2의  next노드를 저장
-		ll1_next_temp = ll1_current->next;
-		ll2_next_temp = ll2_current->next;
-
-		// ll1의 특정노드 다음에 ll2의 노드가 저장되어야 함 (번갈아)
-		ll1_current->next = ll2_current;
-		ll2_current->next = ll1_next_temp;
-
-		// ll1, ll2의 current노드를 next노드로 이동시켜 탐색 지속
-		ll1_current = ll1_next_temp;
-		ll2_current = ll2_next_temp;
+		ll1 = ll2;
+		return;
 	}
 
-	// ll2의 남는 리스트 중 첫째를 head로 삼음
-	ll2->head = ll2_current;
+	if (ll2 == NULL)
+		return;
+
+	// 순회를 위한 리스트노드포인터 생성
+	ListNode *temp1_current = ll1->head;
+	ListNode *temp2_current = ll2->head;
+
+	// next노드를 임시로 저장할 리스트노드포인터 생성
+	ListNode *temp1_next = NULL;
+	ListNode *temp2_next = NULL;
+
+	// 순회중인 노드가 비어있지않으면
+	while (temp1_current != NULL && temp2_current != NULL)
+	{
+		// ll1, ll2의  next노드를 저장
+		temp1_next = temp1_current->next;
+		temp2_next = temp2_current->next;
+
+		// ll1의 특정노드 다음은 ll2노드가 저장 (번갈아)
+		temp1_current->next = temp2_current;
+		temp2_current->next = temp1_next;
+
+		// current노드를 next노드로 이동
+		temp1_current = temp1_next;
+		temp2_current = temp2_next;
+	}
+
+	// ll2의 남는 리스트 중 첫째를 ll2의head로 삼음
+	ll2->head = temp2_current;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////

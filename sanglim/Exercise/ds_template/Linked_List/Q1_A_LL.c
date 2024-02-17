@@ -89,46 +89,27 @@ int main()
 int insertSortedLL(LinkedList *ll, int item)
 {
 	/* add your code here */
-	ListNode *temp;
 
-	int curindex;
-	curindex = 0;
-
+	// 빈 리스트 검사
 	if (ll == NULL)
 		return -1;
 
-	else
-	{
-		temp = ll->head;
-		while (curindex <= ll->size)
-		{
-			if (curindex == ll->size)
-			{
-				insertNode(ll, curindex, item);
-				break;
-			}
-			else
-			{
-				if (temp->item > item)
-				{
-					insertNode(ll, curindex, item);
-					break;
-				}
-				else if (temp->item == item)
-				{
-					curindex = -1;
-					break;
-				}
-				else
-				{
-					curindex = curindex + 1;
-					temp = temp->next;
-				}
-			}
-		}
-	}
+	int counter = 0;
 
-	return curindex;
+	// 노드 탐색을 위한 temp 지정
+	ListNode *temp = ll->head;
+	// 빈 노드를 만나거나, 주어진 item값보다 작을때까지
+	while (temp != NULL && temp->item < item)
+	{
+		// temp를 옮겨가면서 탐색
+		temp = temp->next;
+		counter++;
+	}
+	// 딱 맞는 곳에 삽입
+	// index와 value를 통해 LinkedList에 집어넣는 함수
+	insertNode(ll, counter, item);
+
+	return counter;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
