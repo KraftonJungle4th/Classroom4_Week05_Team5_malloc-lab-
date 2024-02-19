@@ -45,9 +45,9 @@ team_t team = {
 #define SIZE_T_SIZE (ALIGN(sizeof(size_t)))
 #define WSIZE 4
 #define DSIZE 8
-#define CHUNKSIZE
+#define CHUNKSIZE (1<<12)
 #define MAX(x,y) ((x) > (y) ? (x):(y))
-#define PACK(size,alloc) ((size) | (alloc))
+#define PACK(size,alloc) ((size) | (alloc)) //크기와 할당 여부 4바이트로 한번에 표현
 #define GET(p) (*(unsigned int*)(p))
 #define PUT(p,val) (*(unsigned int*)(p) = (val))
 #define GET_SIZE(p) (GET(p) & ~0x7)
@@ -57,11 +57,27 @@ team_t team = {
 #define NEXT_BLKP(bp) ((char*)(bp) + GET_SIZE(((char*)(bp) - WSIZE)))
 #define PREV_BLKP(bp) ((char*)(bp) - GET_SIZE(((char*)(bp) - DSIZE)))
 
+static void *heap_listp;
+static void *extend_heap(size_t words);
+static void *coalesce(void* ptr);
+static void *find_fit(size_t asize);
+static void place(void*ptr,size_t asize);
 /* 
  * mm_init - initialize the malloc package.
  */
 int mm_init(void)
 {   
+    if((heap_listp = mem_sbrk(4*WSIZE)) == (void *) -1)
+        return -1;
+    PUT(heap_listp,0); //alignment padding
+    PUT(heap_listp + (1*WSIZE),PACK(DSIZE,1)); //Prologue header
+    PUT(heap_listp + (2*WSIZE),PACK(DSIZE,1)); //Prologue footer
+    PUT(heap_listp + (3*WSIZE),PACK(0,1)); //epilogue header
+    heap_listp += (2*WSIZE);
+
+    if(extend_heap(CHUNKSIZE/WSIZE) == NULL)
+        return -1;
+
     return 0;
 }
 
