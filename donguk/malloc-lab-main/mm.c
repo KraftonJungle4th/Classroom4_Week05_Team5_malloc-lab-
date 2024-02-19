@@ -41,11 +41,10 @@ team_t team = {
 /* rounds up to the nearest multiple of ALIGNMENT */
 #define ALIGN(size) (((size) + (ALIGNMENT-1)) & ~0x7)
 
-
 #define SIZE_T_SIZE (ALIGN(sizeof(size_t)))
 
 /* 매크로 코드 추가 */
-/* Basic constants and macros */
+/* Basic constants and macros 기본적인 상수 */
 #define WSIZE       4       /* Word and header/footer size (bytes) */ //line:vm:mm:beginconst
 #define DSIZE       8       /* Doubleword size (bytes) */
 #define CHUNKSIZE  (1<<12)  /* Extend heap by this amount (bytes) */  //line:vm:mm:endconst 
@@ -53,34 +52,93 @@ team_t team = {
 #define MAX(x, y) ((x) > (y)? (x) : (y))  
 
 /* Pack a size and allocated bit into a word */
+/* 질문 : | 연산자 ; 816p*/
 #define PACK(size, alloc)  ((size) | (alloc)) //line:vm:mm:pack
 
 /* Read and write a word at address p */
+/* 질문 : 왜 unsigned? */
 #define GET(p)       (*(unsigned int *)(p))            //line:vm:mm:get
 #define PUT(p, val)  (*(unsigned int *)(p) = (val))    //line:vm:mm:put
 
 /* Read the size and allocated fields from address p */
+/* 질문 : 0x1이 의미하는 것 */
 #define GET_SIZE(p)  (GET(p) & ~0x7)                   //line:vm:mm:getsize
 #define GET_ALLOC(p) (GET(p) & 0x1)                    //line:vm:mm:getalloc
 
 /* Given block ptr bp, compute address of its header and footer */
+/* 질문 : bp가 의미하는 것은? */
 #define HDRP(bp)       ((char *)(bp) - WSIZE)                      //line:vm:mm:hdrp
 #define FTRP(bp)       ((char *)(bp) + GET_SIZE(HDRP(bp)) - DSIZE) //line:vm:mm:ftrp
 
 /* Given block ptr bp, compute address of next and previous blocks */
+/* 질문 : BLKP가 의미하는 것은? */
 #define NEXT_BLKP(bp)  ((char *)(bp) + GET_SIZE(((char *)(bp) - WSIZE))) //line:vm:mm:nextblkp
 #define PREV_BLKP(bp)  ((char *)(bp) - GET_SIZE(((char *)(bp) - DSIZE))) //line:vm:mm:prevblkp
+
+/* Global variables */
+static char *heap_listp = 0;  /* Pointer to first block */  
+#ifdef NEXT_FIT
+static char *rover;           /* Next fit rover */
+#endif
+
+/* Function prototypes for internal helper routines */
+static void *extend_heap(size_t words);
+static void place(void *bp, size_t asize);
+static void *find_fit(size_t asize);
+static void *coalesce(void *bp);
+static void printblock(void *bp); 
+static void checkheap(int verbose);
+static void checkblock(void *bp);
+
 /* end : 매크로 관련 코드 추가 */
 
 
+// 1번
 /* 
- * mm_init - initialize the malloc package.
+ * mm_init - initialize the malloc package. 최초 가용블록으로 힙 생성하기
  */
 int mm_init(void)
 {
-    
+        /* Create the initial empty heap */
+    if ((heap_listp = mem_sbrk(4*WSIZE)) == (void *)-1) //line:vm:mm:begininit
+	return -1;
+    PUT(heap_listp, 0);                          /* Alignment padding */
+    PUT(heap_listp + (1*WSIZE), PACK(DSIZE, 1)); /* Prologue header */ 
+    PUT(heap_listp + (2*WSIZE), PACK(DSIZE, 1)); /* Prologue footer */ 
+    PUT(heap_listp + (3*WSIZE), PACK(0, 1));     /* Epilogue header */
+    heap_listp += (2*WSIZE);                     //line:vm:mm:endinit  
+    /* $end mminit */
+
+    /* Extend the empty heap with a free block of CHUNKSIZE bytes */
+    if (extend_heap(CHUNKSIZE/WSIZE) == NULL) 
+	    return -1;
+    return 0;
 }
 
+
+/* $begin mmextendheap */
+static void *extend_heap(size_t words) 
+{
+    char *bp;
+    size_t size;
+
+    /* Allocate an even number of words to maintain alignment */
+    size = (words % 2) ? (words+1) * WSIZE : words * WSIZE; //line:vm:mm:beginextend
+    if ((long)(bp = mem_sbrk(size)) == -1)  
+	return NULL;                                        //line:vm:mm:endextend
+
+    /* Initialize free block header/footer and the epilogue header */
+    PUT(HDRP(bp), PACK(size, 0));         /* Free block header */   //line:vm:mm:freeblockhdr
+    PUT(FTRP(bp), PACK(size, 0));         /* Free block footer */   //line:vm:mm:freeblockftr
+    PUT(HDRP(NEXT_BLKP(bp)), PACK(0, 1)); /* New epilogue header */ //line:vm:mm:newepihdr
+
+    /* Coalesce if the previous block was free */
+    return coalesce(bp);                                          //line:vm:mm:returnblock
+}
+/* $end mmextendheap */
+
+
+// 2번
 /* 
  * mm_malloc - Allocate a block by incrementing the brk pointer.
  *     Always allocate a block whose size is a multiple of the alignment.
@@ -97,6 +155,7 @@ void *mm_malloc(size_t size)
     }
 }
 
+// 3번
 /*
  * mm_free - Freeing a block does nothing.
  */
@@ -104,6 +163,7 @@ void mm_free(void *ptr)
 {
 }
 
+// 4번
 /*
  * mm_realloc - Implemented simply in terms of mm_malloc and mm_free
  */
