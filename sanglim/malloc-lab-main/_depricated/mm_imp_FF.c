@@ -50,7 +50,7 @@ team_t team = {
 /* 커스텀 */
 #define WSIZE 4 /* Word and header/footer size (Bytes) */
 #define DSIZE 8 /* Double Word size (Bytes) */
-#define CHUNKSIZE (1 << 4)
+#define CHUNKSIZE (1 << 12)
 
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 
@@ -73,9 +73,7 @@ team_t team = {
 #define NEXT_BLKP(bp) ((char *)(bp) + GET_SIZE(((char *)(bp)-WSIZE)))
 #define PREV_BLKP(bp) ((char *)(bp)-GET_SIZE(((char *)(bp)-DSIZE)))
 
-/* 커스텀 변수 */
-static char *heap_listp = NULL; // 얘는 따로 해야하나?
-static void *NF_pointer = NULL;
+static char *heap_listp; // 얘는 따로 해야하나?
 
 /* 함수 프로토타입 선언 */
 int mm_init(void);
@@ -103,8 +101,6 @@ int mm_init(void)
     /* Extend the empty heap with a free block of CHUNKSIZE bytes */
     if (extend_heap(CHUNKSIZE / WSIZE) == NULL)
         return -1;
-
-    NF_pointer = heap_listp;
     return 0;
 }
 
@@ -148,8 +144,7 @@ static void *coalesce(void *bp)
 
     /* CASE 1 : 이전과 다음 힙블록이 할당중일때 */
     if (prev_alloc && next_alloc)
-    {
-    }
+        return bp;
 
     /* CASE 2 : 다음 힙블록이 가용상태(state : free) */
     else if (prev_alloc && !next_alloc)
@@ -176,7 +171,7 @@ static void *coalesce(void *bp)
         PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));
         bp = PREV_BLKP(bp);
     }
-    NF_pointer = bp;
+
     return bp;
 }
 
@@ -230,29 +225,15 @@ void *mm_malloc(size_t size)
 
 static void *find_fit(size_t asize)
 {
-    void *bp = NF_pointer;
+    /* 답은 묵시적 가용 리스트에서  FirstFit 검색을 수행해야 함 */
 
-    /* NextFit search1 - 저장된 지점부터 찾음 */
-    while (GET_SIZE(HDRP(bp)) > 0) // size가 0인 epilogue만나면 나가짐
+    /* FirstFit search */
+    void *bp;
+
+    for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp))
     {
         if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp))))
-        {
-            NF_pointer = NEXT_BLKP(bp); // 찾은 후 NF_pointer 업데이트
             return bp;
-        }
-        bp = NEXT_BLKP(bp);
-    }
-
-    /* NextFit search2 - heap의 처음부터 찾음 */
-    bp = heap_listp;
-    while (bp < NF_pointer)
-    {
-        if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp))))
-        {
-            NF_pointer = NEXT_BLKP(bp); // 찾은 후 NF_pointer 업데이트
-            return bp;
-        }
-        bp = NEXT_BLKP(bp);
     }
 
     return NULL;
