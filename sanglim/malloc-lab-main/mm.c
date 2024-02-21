@@ -1,16 +1,5 @@
-/*
- * mm-naive.c - The fastest, least memory-efficient malloc package.
- *
- * In this naive approach, a block is allocated by simply incrementing
- * the brk pointer.  A block is pure payload. There are no headers or
- * footers.  Blocks are never coalesced or reused. Realloc is
- * implemented directly using mm_malloc and mm_free.
- *
- * NOTE TO STUDENTS: Replace this header comment with your own header
- * comment that gives a high level description of your solution.
- */
+/* Implicit NextFit = 85*/
 
-/* Implicit NextFit+BestFit */
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -80,13 +69,14 @@ static char *heap_listp = NULL; // 얘는 따로 해야하나?
 static void *NF_pointer = NULL;
 
 /* 함수 프로토타입 선언 */
-int mm_init(void);
-static void *extend_heap(size_t words);
-void mm_free(void *bp);
 static void *coalesce(void *bp);
-void *mm_malloc(size_t size);
+static void *extend_heap(size_t words);
 static void *find_fit(size_t asize);
 static void place(void *bp, size_t asize);
+static size_t get_adjusted_size(old_size);
+int mm_init(void);
+void mm_free(void *bp);
+void *mm_malloc(size_t size);
 void *mm_realloc(void *ptr, size_t size);
 
 /*
@@ -141,7 +131,8 @@ void mm_free(void *bp)
     coalesce(bp);
 }
 
-/* 가용상태로 바뀐 힙블록을 받아와, 주변 블록들의 상태에 따라 합체시키는 함수 */
+/* 가용상태로 바뀐 힙블록을 받아와, 주변 블록들의 상태에 따라 합체시키는 함수  *
+ * 모든 가용상태 : 힙이 늘어날 때 (extend), free할 때 (free)                             */
 static void *coalesce(void *bp)
 {
     size_t prev_alloc = GET_ALLOC(FTRP(PREV_BLKP(bp)));
@@ -197,16 +188,13 @@ void *mm_malloc(size_t size)
         return NULL;
 
     /* size를 adjusted size로 조정 (정렬조건 + 각종메타데이터를 포함) */
-    if (size <= DSIZE)
-        asize = 2 * DSIZE;
-    else
-        asize = DSIZE * ((size + (DSIZE) + (DSIZE - 1)) / DSIZE);
+    asize = get_adjusted_size(size);
 
     /* 조정된 사이즈에 맞는 가용상태의 리스트 탐색 */
     if ((bp = find_fit(asize)) != NULL)
     {
         place(bp, asize);
-
+        NF_pointer = bp; //  place하고 나서도 NF 배치가 필요하다
         return bp;
     }
 
@@ -216,34 +204,21 @@ void *mm_malloc(size_t size)
     if ((bp = extend_heap(extendsize / WSIZE)) == NULL)
         return NULL;
     place(bp, asize);
-
+    NF_pointer = bp; //  place하고 나서도 NF 배치가 필요하다
     return bp;
 }
 
 static void *find_fit(size_t asize)
 {
     void *bp = NF_pointer;
-    size_t best_block_size = GET_SIZE(HDRP(NF_pointer));
-    void *best_block_bp = bp;
 
-    // 사용 가능한 메모리 블록을 확인하여 가장 큰 공간을 찾음
     /* NextFit search1 - 저장된 지점부터 찾음 */
     while (GET_SIZE(HDRP(bp)) > 0) // size가 0인 epilogue만나면 나가짐
     {
         if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp)))) // 할당가능조건
         {
-            /* 딱 맞으면 바로반환 */
-            if (GET_SIZE(HDRP(bp)) == asize)
-            {
-                NF_pointer = NEXT_BLKP(bp); // 찾은 후 NF_pointer 업데이트
-                return bp;
-            }
-            /* 안 맞으면 일단 best정보들(p, size) 저장 (search1이니까) */
-            else if (GET_SIZE(HDRP(bp)) < best_block_size)
-            {
-                best_block_bp = bp;
-                best_block_size = GET_SIZE(HDRP(bp));
-            }
+            NF_pointer = NEXT_BLKP(bp); // 찾은 후 NF_pointer 업데이트
+            return bp;
         }
         bp = NEXT_BLKP(bp);
     }
@@ -254,28 +229,10 @@ static void *find_fit(size_t asize)
     {
         if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp)))) // 할당가능조건
         {
-            /* 딱 맞으면 바로반환 */
-            if (GET_SIZE(HDRP(bp)) == asize)
-            {
-                NF_pointer = NEXT_BLKP(bp); // 찾은 후 NF_pointer 업데이트
-                return bp;
-            }
-            /* 안 맞으면 일단 best정보들(p, size) 저장 (search1이니까) */
-            else if (GET_SIZE(HDRP(bp)) < best_block_size)
-            {
-                best_block_bp = bp;
-                best_block_size = GET_SIZE(HDRP(bp));
-            }
+            NF_pointer = NEXT_BLKP(bp); // 찾은 후 NF_pointer 업데이트
+            return bp;
         }
         bp = NEXT_BLKP(bp);
-    }
-
-    // 공간찾기가 한 번도 이루어 지지 않았으면 -1을 반환
-    if (best_block_size != GET_SIZE(HDRP(NF_pointer)))
-    {
-        NF_pointer = NEXT_BLKP(best_block_bp); // 반환블록에 가서 next를 하는게 좋은지
-        // // NF_pointer    // 아니면 그냥 한바퀴 돈 부분에 NF포인터를 놔둬야 할 지 잘 모르겠다
-        return best_block_bp;
     }
 
     return NULL;
@@ -295,11 +252,13 @@ static void place(void *bp, size_t asize)
         bp = NEXT_BLKP(bp);
         PUT(HDRP(bp), PACK(csize - asize, 0));
         PUT(FTRP(bp), PACK(csize - asize, 0));
+        // coalesce(bp); // 이거 빼도된다는데 왜? 가용+가용이 일어나는 경우가 없다 (free 시에 coalesce가 연달아 일어나므로)
     }
     else
     {
         PUT(HDRP(bp), PACK(csize, 1));
         PUT(FTRP(bp), PACK(csize, 1));
+        bp = NEXT_BLKP(bp);
     }
 }
 
@@ -307,21 +266,56 @@ static void place(void *bp, size_t asize)
  *     Implemented simply in terms of mm_malloc and mm_free.            */
 void *mm_realloc(void *ptr, size_t size)
 {
-    void *oldptr = ptr;
-    if (oldptr == NULL) // 포인터가 NULL인 경우 할당만 함
+    void *old_ptr = ptr;
+    size_t old_size = GET_SIZE(HDRP(old_ptr));
+
+    if (old_ptr == NULL) // 포인터가 NULL인 경우 할당만 함
         return mm_malloc(size);
 
-    void *newptr = mm_malloc(size);
-    if (newptr == NULL) // 할당실패.
-        return NULL;
+    size_t newsize = size + DSIZE;
 
     // copySize = *(size_t *)((char *)oldptr - SIZE_T_SIZE);
-    size_t copySize = GET_SIZE(HDRP(oldptr)) - DSIZE; //  header에서 payload사이즈 추출
-    if (size < copySize)
-        copySize = size;
+    // size_t copySize = GET_SIZE(HDRP(oldptr)) - DSIZE; //  header에서 payload사이즈 추출
+    if (newsize <= old_size)
+        return old_ptr;
 
-    memcpy(newptr, oldptr, copySize);
-    mm_free(oldptr);
+    // 여기 잘 모르겠다.
+    size_t merged_size = old_size + GET_SIZE(HDRP(NEXT_BLKP(old_ptr))); //  이 케이스는 가용+가용이라는 경우가 발생할
+    // 수 있다. 가용(원래 사용, 할당중)+가용 이었으므로. 그래서 따로 계산해줘야함
+    if (!GET_ALLOC(HDRP(NEXT_BLKP(old_ptr))) && (newsize <= merged_size))
+    {                                             // 가용 블록이고 사이즈 충분
+        PUT(HDRP(old_ptr), PACK(merged_size, 1)); // 새로운 헤더
+        PUT(FTRP(old_ptr), PACK(merged_size, 1)); // 새로운 푸터
+        return old_ptr;
+    }
+    else // 새로운 블록 할당
+    {
+        void *new_ptr;
+        new_ptr = mm_malloc(newsize);
 
-    return newptr;
+        if (new_ptr == NULL)
+            return NULL;
+
+        // int copy_size = old_size - DSIZE;
+
+        // if (size < copy_size)
+        //     copy_size = size;
+
+        memcpy(new_ptr, old_ptr, newsize);
+        mm_free(old_ptr);
+        return new_ptr;
+    }
+}
+
+static size_t get_adjusted_size(old_size)
+{
+    size_t new_size;
+    /* size를 adjusted size로 조정 (정렬조건 + 각종메타데이터를 포함) */
+    if (old_size <= DSIZE)
+        new_size = 2 * DSIZE;
+    else
+        new_size = ALIGN(old_size + DSIZE); // ALIGN사용
+                                            // asize = DSIZE * ((size + (DSIZE) + (DSIZE - 1)) / DSIZE);
+
+    return new_size;
 }
