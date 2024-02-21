@@ -63,6 +63,8 @@ static void *extend_heap(size_t words);
 static void *coalesce(void* ptr);
 static void *find_fit(size_t asize);
 static void place(void*ptr,size_t asize);
+static void* next_fit(size_t asize);
+static void* temp = NULL;
 /* 
  * mm_init - initialize the malloc package.
  */
@@ -118,7 +120,7 @@ void *mm_malloc(size_t size)
         asize = DSIZE * ((size + DSIZE + DSIZE - 1) / DSIZE); // 8배수로 올림 처리
 
         /* 가용 블록 검색 */
-    if ((bp = find_fit(asize)) != NULL)
+    if (bp = next_fit((asize)) != NULL)
     {
         place(bp, asize); // 할당
         return bp;        // 새로 할당된 블록의 포인터 리턴
@@ -192,6 +194,25 @@ static void *find_fit(size_t asize)
     return NULL;
 }
 
+// static void* next_fit(size_t asize){
+//     void* bp;
+
+//     if(temp == NULL){
+//         return find_fit(asize);
+//     }else{
+//         bp = NEXT_BLKP(temp);
+//     }
+
+//     while(GET_SIZE(bp) > 0){ // 해당 블록 사이즈 0보다 크고
+//         if(!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp)))){ // free, 현재 사이즈가 클때
+//             return bp;
+//         }
+//         bp = NEXT_BLKP(bp);
+//     }
+
+//     return NULL;
+// }
+
 static void place(void *bp, size_t asize)
 {
     size_t csize = GET_SIZE(HDRP(bp)); // 현재 블록의 크기
@@ -243,9 +264,6 @@ void *mm_realloc(void *ptr, size_t size)
 
     return newptr;
 }
-
-
-
 
 
 
