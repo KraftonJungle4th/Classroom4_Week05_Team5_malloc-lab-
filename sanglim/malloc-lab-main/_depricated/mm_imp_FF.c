@@ -1,16 +1,5 @@
-/*
- * mm-naive.c - The fastest, least memory-efficient malloc package.
- *
- * In this naive approach, a block is allocated by simply incrementing
- * the brk pointer.  A block is pure payload. There are no headers or
- * footers.  Blocks are never coalesced or reused. Realloc is
- * implemented directly using mm_malloc and mm_free.
- *
- * NOTE TO STUDENTS: Replace this header comment with your own header
- * comment that gives a high level description of your solution.
- */
+/* Implicit FirstFit = 76 */
 
-/* Implicit FirstFit */
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -75,16 +64,18 @@ team_t team = {
 #define NEXT_BLKP(bp) ((char *)(bp) + GET_SIZE(((char *)(bp)-WSIZE)))
 #define PREV_BLKP(bp) ((char *)(bp)-GET_SIZE(((char *)(bp)-DSIZE)))
 
+/* 커스텀 변수 */
 static char *heap_listp; // 얘는 따로 해야하나?
 
 /* 함수 프로토타입 선언 */
-int mm_init(void);
-static void *extend_heap(size_t words);
-void mm_free(void *bp);
 static void *coalesce(void *bp);
-void *mm_malloc(size_t size);
+static void *extend_heap(size_t words);
 static void *find_fit(size_t asize);
 static void place(void *bp, size_t asize);
+static size_t get_adjusted_size(size_t old_size);
+int mm_init(void);
+void mm_free(void *bp);
+void *mm_malloc(size_t size);
 void *mm_realloc(void *ptr, size_t size);
 
 /*
@@ -137,7 +128,8 @@ void mm_free(void *bp)
     coalesce(bp);
 }
 
-/* 가용상태로 바뀐 힙블록을 받아와, 주변 블록들의 상태에 따라 합체시키는 함수 */
+/* 가용상태로 바뀐 힙블록을 받아와, 주변 블록들의 상태에 따라 합체시키는 함수  *
+ * 모든 가용상태 : 힙이 늘어날 때 (extend), free할 때 (free)                             */
 static void *coalesce(void *bp)
 {
     size_t prev_alloc = GET_ALLOC(FTRP(PREV_BLKP(bp)));
@@ -146,7 +138,8 @@ static void *coalesce(void *bp)
 
     /* CASE 1 : 이전과 다음 힙블록이 할당중일때 */
     if (prev_alloc && next_alloc)
-        return bp;
+    {
+    }
 
     /* CASE 2 : 다음 힙블록이 가용상태(state : free) */
     else if (prev_alloc && !next_alloc)
@@ -192,10 +185,7 @@ void *mm_malloc(size_t size)
         return NULL;
 
     /* size를 adjusted size로 조정 (정렬조건 + 각종메타데이터를 포함) */
-    if (size <= DSIZE)
-        asize = 2 * DSIZE;
-    else
-        asize = DSIZE * ((size + (DSIZE) + (DSIZE - 1)) / DSIZE);
+    asize = get_adjusted_size(size);
 
     /* 조정된 사이즈에 맞는 가용상태의 리스트 탐색 */
     if ((bp = find_fit(asize)) != NULL)
@@ -217,13 +207,15 @@ void *mm_malloc(size_t size)
 
 static void *find_fit(size_t asize)
 {
+    void *bp = heap_listp;
     /* FirstFit search */
-    void *bp;
 
-    for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp))
+    while (GET_SIZE(HDRP(bp)) > 0)
     {
         if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp)))) // 할당가능조건
             return bp;
+
+        bp = NEXT_BLKP(bp);
     }
 
     return NULL;
@@ -255,21 +247,56 @@ static void place(void *bp, size_t asize)
  *     Implemented simply in terms of mm_malloc and mm_free.            */
 void *mm_realloc(void *ptr, size_t size)
 {
-    void *oldptr = ptr;
-    if (oldptr == NULL) // 포인터가 NULL인 경우 할당만 함
+    void *old_ptr = ptr;
+    size_t old_size = GET_SIZE(HDRP(old_ptr));
+
+    if (old_ptr == NULL) // 포인터가 NULL인 경우 할당만 함
         return mm_malloc(size);
 
-    void *newptr = mm_malloc(size);
-    if (newptr == NULL) // 할당실패.
-        return NULL;
+    size_t newsize = size + DSIZE;
 
     // copySize = *(size_t *)((char *)oldptr - SIZE_T_SIZE);
-    size_t copySize = GET_SIZE(HDRP(oldptr)) - DSIZE; //  header에서 payload사이즈 추출
-    if (size < copySize)
-        copySize = size;
+    // size_t copySize = GET_SIZE(HDRP(oldptr)) - DSIZE; //  header에서 payload사이즈 추출
+    if (newsize <= old_size)
+        return old_ptr;
 
-    memcpy(newptr, oldptr, copySize);
-    mm_free(oldptr);
+    // 여기 잘 모르겠다.
+    size_t merged_size = old_size + GET_SIZE(HDRP(NEXT_BLKP(old_ptr))); //  이 케이스는 가용+가용이라는 경우가 발생할
+    // 수 있다. 가용(원래 사용, 할당중)+가용 이었으므로. 그래서 따로 계산해줘야함
+    if (!GET_ALLOC(HDRP(NEXT_BLKP(old_ptr))) && (newsize <= merged_size))
+    {                                             // 가용 블록이고 사이즈 충분
+        PUT(HDRP(old_ptr), PACK(merged_size, 1)); // 새로운 헤더
+        PUT(FTRP(old_ptr), PACK(merged_size, 1)); // 새로운 푸터
+        return old_ptr;
+    }
+    else // 새로운 블록 할당
+    {
+        void *new_ptr;
+        new_ptr = mm_malloc(newsize);
 
-    return newptr;
+        if (new_ptr == NULL)
+            return NULL;
+
+        // int copy_size = old_size - DSIZE;
+
+        // if (size < copy_size)
+        //     copy_size = size;
+
+        memcpy(new_ptr, old_ptr, newsize);
+        mm_free(old_ptr);
+        return new_ptr;
+    }
+}
+
+static size_t get_adjusted_size(size_t old_size)
+{
+    size_t new_size;
+    /* size를 adjusted size로 조정 (정렬조건 + 각종메타데이터를 포함) */
+    if (old_size <= DSIZE)
+        new_size = 2 * DSIZE;
+    else
+        new_size = ALIGN(old_size + DSIZE); // ALIGN사용
+                                            // asize = DSIZE * ((size + (DSIZE) + (DSIZE - 1)) / DSIZE);
+
+    return new_size;
 }
