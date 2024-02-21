@@ -20,6 +20,8 @@
 #include "memlib.h"
 #include "fsecs.h"
 #include "config.h"
+#include <bits/getopt_core.h>
+
 
 /**********************
  * Constants and macros
