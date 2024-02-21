@@ -54,18 +54,8 @@
 
 /* 힙 메모리 할당 정책 */
 // #define FIRST_FIT // 48 + 13 = 61
-// #define BEST_FIT // 50 + 13 = 63
-#define NEXT_FIT // 46 + 40 = 86
-
-team_t team = {
-    "호둘치",
-    "정종문",
-    "whdans4005@gmail.com",
-    "백강민",
-    "xxxxxxxxxx@gmail.com",
-    "연선애",
-    "xxxxxxxxxx@gmail.com",
-};
+#define BEST_FIT // 50 + 13 = 63
+// #define NEXT_FIT // 46 + 40 = 86
 
 // 단일 워드 (4) 또는 더블 워드 (8) 정렬
 #define ALIGNMENT 8
@@ -102,6 +92,16 @@ team_t team = {
 #define NEXT_BLKP(bp) ((char *)(bp) + GET_SIZE(((char *)(bp)-WSIZE)))
 // 이전 블록 포인터를 반환
 #define PREV_BLKP(bp) ((char *)(bp)-GET_SIZE(((char *)(bp)-DSIZE)))
+
+team_t team = {
+    "호둘치",
+    "정종문",
+    "whdans4005@gmail.com",
+    "백강민",
+    "xxxxxxxxxx@gmail.com",
+    "연선애",
+    "xxxxxxxxxx@gmail.com",
+};
 
 /* 전역 변수 */
 static void *heap_listp; // 힙의 최초 블록을 가리키는 포인터
@@ -156,6 +156,46 @@ static void *extend_heap(size_t words)
     return coalesce(bp);
 }
 
+/*
+ * mm_malloc - 블럭을 할당하고 적합한 블록을 찾지 못했을 때 힙을 확장한다.
+ * 블록의 크기는 최소 16바이트 크기의 블록으로 구성
+ * 8바이트는 정렬 조건을 만족하기 위해, 8바이트는 헤더와 풋터를 위해 사용
+ */
+void *mm_malloc(size_t size) // size는 헤더와 풋터를 제외한 블록의 크기
+{
+    size_t asize;      // 헤더와 풋터를 포함한 조정된 블록의 크기
+    size_t extendsize; // 적합한 블록을 찾지 못했을 때 힙을 확장하는 양
+    char *bp;
+
+    // 가짜 블록을 할당하지 않음
+    if (size == 0)
+        return NULL;
+
+    if (size <= DSIZE)
+        asize = 2 * DSIZE;
+    else
+        asize = ALIGN(size + DSIZE); // 헤더와 풋터를 포함하여 8의 배수로 올림
+
+    // 가용 리스트에서 적합한 블록을 찾음
+    if ((bp = find_fit(asize)) != NULL)
+    {
+        place(bp, asize);
+        last_bp = bp;
+        return bp;
+    }
+
+    // 적합한 블록을 찾지 못했을 때 힙을 확장하고 새로운 블록을 할당
+    extendsize = MAX(asize, CHUNKSIZE);
+    if ((bp = extend_heap(extendsize / WSIZE)) == NULL)
+        return NULL;
+    place(bp, asize);
+    last_bp = bp;
+    return bp;
+}
+
+/*
+ * mm_free - 블록을 가용 상태로 설정하고 인접 가용 블록과 통합한다.
+ */
 void mm_free(void *bp)
 {
     size_t size = GET_SIZE(HDRP(bp));
@@ -163,6 +203,29 @@ void mm_free(void *bp)
     PUT(HDRP(bp), PACK(size, 0));
     PUT(FTRP(bp), PACK(size, 0));
     coalesce(bp);
+}
+
+/*
+ * place - 가용 블록의 시작 부분에 asize 바이트의 블록을 배치하고 나머지가 최소 블록 크기 이상이면 분할한다.
+ */
+static void place(void *bp, size_t allocate_size) // allocate_size는 헤더와 풋터를 포함한 블록의 크기
+{
+    size_t chunk_size = GET_SIZE(HDRP(bp));
+
+    if ((chunk_size - allocate_size) >= (2 * DSIZE))
+    { // 가용 블록에 할당을 하고 남은 공간이 최소 블록 크기 이상이면 분할
+        PUT(HDRP(bp), PACK(allocate_size, 1));
+        PUT(FTRP(bp), PACK(allocate_size, 1));
+        bp = NEXT_BLKP(bp);
+        PUT(HDRP(bp), PACK(chunk_size - allocate_size, 0));
+        PUT(FTRP(bp), PACK(chunk_size - allocate_size, 0));
+        coalesce(bp);
+    }
+    else
+    { // 가용 블록에 할당을 하고 남은 공간이 최소 블록 크기보다 작으면 분할하지 않음
+        PUT(HDRP(bp), PACK(chunk_size, 1));
+        PUT(FTRP(bp), PACK(chunk_size, 1));
+    }
 }
 
 /*
@@ -203,43 +266,52 @@ static void *coalesce(void *bp)
     last_bp = bp;
     return bp;
 }
+
 /*
- * mm_malloc - 블럭을 할당하고 적합한 블록을 찾지 못했을 때 힙을 확장한다.
- * 블록의 크기는 최소 16바이트 크기의 블록으로 구성
- * 8바이트는 정렬 조건을 만족하기 위해, 8바이트는 헤더와 풋터를 위해 사용
+ * First Fit: 가용 블록 리스트에서 처음으로 적합한 블록을 찾는다.
  */
-void *mm_malloc(size_t size) // size는 헤더와 풋터를 제외한 블록의 크기
+#if defined(FIRST_FIT)
+static void *find_fit(size_t asize)
 {
-    size_t asize;      // 헤더와 풋터를 포함한 조정된 블록의 크기
-    size_t extendsize; // 적합한 블록을 찾지 못했을 때 힙을 확장하는 양
-    char *bp;
+    void *bp;
 
-    // 가짜 블록을 할당하지 않음
-    if (size == 0)
-        return NULL;
-
-    if (size <= DSIZE)
-        asize = 2 * DSIZE;
-    else
-        asize = ALIGN(size + DSIZE); // 헤더와 풋터를 포함하여 8의 배수로 올림
-
-    // 가용 리스트에서 적합한 블록을 찾음
-    if ((bp = find_fit(asize)) != NULL)
+    for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp))
     {
-        place(bp, asize);
-        last_bp = bp;
-        return bp;
+        if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp))))
+        {
+            return bp;
+        }
     }
-
-    // 적합한 블록을 찾지 못했을 때 힙을 확장하고 새로운 블록을 할당
-    extendsize = MAX(asize, CHUNKSIZE);
-    if ((bp = extend_heap(extendsize / WSIZE)) == NULL)
-        return NULL;
-    place(bp, asize);
-    last_bp = bp;
-    return bp;
+    return NULL; // No fit
 }
 
+/*
+ * Best Fit: 가용 블록 리스트에서 가장 작은 적합한 블록을 찾는다.
+ */
+#elif defined(BEST_FIT)
+static void *find_fit(size_t asize)
+{
+    void *bp;
+    void *best_bp = NULL;
+    size_t min_size = 0;
+
+    for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp))
+    {
+        if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp))))
+        {
+            if (min_size == 0 || GET_SIZE(HDRP(bp)) < min_size)
+            {
+                min_size = GET_SIZE(HDRP(bp));
+                best_bp = bp;
+            }
+        }
+    }
+    return best_bp;
+}
+/*
+ * Next Fit: 마지막으로 할당된 블록에서부터 가용 블록을 찾는다.
+ */
+#elif defined(NEXT_FIT)
 static void *find_fit(size_t asize)
 {
     void *bp = last_bp;
@@ -267,29 +339,7 @@ static void *find_fit(size_t asize)
     }
     return NULL; // No fit
 }
-
-/*
- * place - 가용 블록의 시작 부분에 asize 바이트의 블록을 배치하고 나머지가 최소 블록 크기 이상이면 분할한다.
- */
-static void place(void *bp, size_t allocate_size) // allocate_size는 헤더와 풋터를 포함한 블록의 크기
-{
-    size_t chunk_size = GET_SIZE(HDRP(bp));
-
-    if ((chunk_size - allocate_size) >= (2 * DSIZE))
-    { // 가용 블록에 할당을 하고 남은 공간이 최소 블록 크기 이상이면 분할
-        PUT(HDRP(bp), PACK(allocate_size, 1));
-        PUT(FTRP(bp), PACK(allocate_size, 1));
-        bp = NEXT_BLKP(bp);
-        PUT(HDRP(bp), PACK(chunk_size - allocate_size, 0));
-        PUT(FTRP(bp), PACK(chunk_size - allocate_size, 0));
-        coalesce(bp);
-    }
-    else
-    { // 가용 블록에 할당을 하고 남은 공간이 최소 블록 크기보다 작으면 분할하지 않음
-        PUT(HDRP(bp), PACK(chunk_size, 1));
-        PUT(FTRP(bp), PACK(chunk_size, 1));
-    }
-}
+#endif
 
 /*
  * mm_realloc - 기존 블록을 새로운 크기로 재할당한다.
