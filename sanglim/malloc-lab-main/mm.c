@@ -263,7 +263,7 @@ static void place(void *bp, size_t asize)
         bp = NEXT_BLKP(bp);
         PUT(HDRP(bp), PACK(csize - asize, 0));
         PUT(FTRP(bp), PACK(csize - asize, 0));
-        coalesce(bp); // 이거 빼도된다는데 왜?
+        // coalesce(bp); // 이거 빼도된다는데 왜? 가용+가용이 일어나는 경우가 없다 (free 시에 coalesce가 연달아 일어나므로)
     }
     else
     {
