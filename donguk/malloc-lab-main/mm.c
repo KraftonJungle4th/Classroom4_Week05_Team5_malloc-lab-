@@ -43,27 +43,30 @@ static void place(void *bp, size_t asize);
 static void *heap_listp;
 static char *recently_visited;
 
+// 힙 초기화
 int mm_init(void)
 {
-    if ((heap_listp = mem_sbrk(4 * WSIZE)) == (void *)-1) // 4워드 크기의 힙 생성, heap_listp에 힙의 시작 주소값 할당
-        return -1;
-    PUT(heap_listp, 0);                            // 정렬 패딩
+    if ((heap_listp = mem_sbrk(4 * WSIZE)) == (void *)-1) // 4워드 크기의 힙 생성, heap_listp에 힙의 시작 주소값 할당; 힙의 처음 주소 값 반환
+        return -1; // 오류시 -1 반환함.
+    PUT(heap_listp, 0);                            // 정렬 패딩 0으로 설정
     PUT(heap_listp + (1 * WSIZE), PACK(DSIZE, 1)); // 프롤로그 Header : 쌍이므로 같은 사이즈를 가진다.
     PUT(heap_listp + (2 * WSIZE), PACK(DSIZE, 1)); // 프롤로그 Footer : 쌍이므로 같은 사이즈를 가진다.
     PUT(heap_listp + (3 * WSIZE), PACK(0, 1));     // 에필로그 Header: 프로그램이 할당한 마지막 블록의 뒤에 위치하며, 블록이 할당되지 않은 상태 0이다.
-    heap_listp += DSIZE;
+    heap_listp += DSIZE; // payload가 들어올 곳인 프롤로그 header 앞으로 이동!! 
+
 
     // 힙을 CHUNKSIZE bytes로 확장
-    if (extend_heap(CHUNKSIZE / WSIZE) == NULL)
+    if (extend_heap(CHUNKSIZE / WSIZE) == NULL)  // 4096 을 4바이트(워드) 단위로 나눔.
         return -1;
     return 0;
 }
 
+// 메모리 할당
 void *mm_malloc(size_t size)
 {
     size_t asize;      // 조정된 블록 사이즈
     size_t extendsize; // 확장할 사이즈
-    char *bp;
+    char *bp; // block pointer
 
     // 잘못된 요청 분기
     if (size == 0)
@@ -131,22 +134,6 @@ void *mm_realloc(void *ptr, size_t size)
     return newptr;
 }
 
-// void *mm_realloc(void *ptr, size_t size)
-// {
-//     void *oldptr = ptr;
-//     void *newptr;
-//     size_t copySize;
-//     newptr = mm_malloc(size);
-//     if (newptr == NULL)
-//         return NULL;
-//     copySize = GET_SIZE(HDRP(oldptr));
-//     if (size < copySize)
-//         copySize = size;
-//     memcpy(newptr, oldptr, copySize);
-//     mm_free(oldptr);
-//     return newptr;
-// }
-
 static void *extend_heap(size_t words)
 {
     char *bp; // 여기서 bp는 mem brk가 할당된다.
@@ -201,6 +188,7 @@ static void *coalesce(void *bp)
     return bp; // 병합된 블록의 포인터 반환
 }
 
+// First Fit 
 // static void *find_fit(size_t asize)
 // {
 //     void *bp = mem_heap_lo() + 2 * WSIZE; // 첫번째 블록(주소: 힙의 첫 부분 + 8bytes)부터 탐색 시작
@@ -213,22 +201,25 @@ static void *coalesce(void *bp)
 //     return NULL;
 // }
 
+// Next Fit
 static void *find_fit(size_t asize)
 {
     char *bp = recently_visited; // void *bp에서 변경
-    for (bp = NEXT_BLKP(bp); GET_SIZE(HDRP(bp)) != 0; bp = NEXT_BLKP(bp))
+    for (bp = NEXT_BLKP(bp); GET_SIZE(HDRP(bp)) != 0; bp = NEXT_BLKP(bp)) // 다음 가용 블록부터, 에필로그 헤더만날 때까지, 다음 가용 블록
     {
-        if (!GET_ALLOC(HDRP(bp)) && GET_SIZE(HDRP(bp)) >= asize)
+        if (!GET_ALLOC(HDRP(bp)) && GET_SIZE(HDRP(bp)) >= asize) // 할당되지 않았고(가용블록), 가용 사이즈가 할당할 사이즈보다 크거나 같으면
         {
-            recently_visited = bp;
-            return bp;
+            recently_visited = bp; // Next Fit을 위한 저장
+            return bp; // block 
         }
     }
-    bp = heap_listp;
+    bp = heap_listp;// 처음 블록
+
+    // 처음 블록부터 recently_visited까지 순회
     while (bp < recently_visited)
     {
         bp = NEXT_BLKP(bp);
-        if (!GET_ALLOC(HDRP(bp)) && GET_SIZE(HDRP(bp)) >= asize)
+        if (!GET_ALLOC(HDRP(bp)) && GET_SIZE(HDRP(bp)) >= asize) // 할당되지 않았고(가용블록), 가용 사이즈가 할당할 사이즈보다 크거나 같으면
         {
             recently_visited = bp;
             return bp;
@@ -238,6 +229,7 @@ static void *find_fit(size_t asize)
     return NULL;
 }
 
+// 가용 블록에 메모리 할당
 static void place(void *bp, size_t asize)
 {
     size_t csize = GET_SIZE(HDRP(bp)); // 현재 블록의 크기
