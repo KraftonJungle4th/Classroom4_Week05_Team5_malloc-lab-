@@ -9,6 +9,8 @@
  * NOTE TO STUDENTS: Replace this header comment with your own header
  * comment that gives a high level description of your solution.
  */
+
+/* Implicit FirstFit */
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -211,28 +213,16 @@ void *mm_malloc(size_t size)
     place(bp, asize);
 
     return bp;
-
-    // int newsize = ALIGN(size + SIZE_T_SIZE);
-    // void *p = mem_sbrk(newsize);
-    // if (p == (void *)-1)
-    //     return NULL;
-    // else
-    // {
-    //     *(size_t *)p = size;
-    //     return (void *)((char *)p + SIZE_T_SIZE);
-    // }
 }
 
 static void *find_fit(size_t asize)
 {
-    /* 답은 묵시적 가용 리스트에서  FirstFit 검색을 수행해야 함 */
-
     /* FirstFit search */
     void *bp;
 
     for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp))
     {
-        if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp))))
+        if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp)))) // 할당가능조건
             return bp;
     }
 
