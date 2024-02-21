@@ -10,7 +10,7 @@
  * comment that gives a high level description of your solution.
  */
 
-/* Implicit FirstFit */
+/* Implicit NextFit */
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -75,16 +75,19 @@ team_t team = {
 #define NEXT_BLKP(bp) ((char *)(bp) + GET_SIZE(((char *)(bp)-WSIZE)))
 #define PREV_BLKP(bp) ((char *)(bp)-GET_SIZE(((char *)(bp)-DSIZE)))
 
-static char *heap_listp; // 얘는 따로 해야하나?
+/* 커스텀 변수 */
+static char *heap_listp = NULL; // 얘는 따로 해야하나?
+static void *NF_pointer = NULL;
 
 /* 함수 프로토타입 선언 */
-int mm_init(void);
-static void *extend_heap(size_t words);
-void mm_free(void *bp);
 static void *coalesce(void *bp);
-void *mm_malloc(size_t size);
+static void *extend_heap(size_t words);
 static void *find_fit(size_t asize);
 static void place(void *bp, size_t asize);
+static size_t get_adjusted_size(old_size);
+int mm_init(void);
+void mm_free(void *bp);
+void *mm_malloc(size_t size);
 void *mm_realloc(void *ptr, size_t size);
 
 /*
@@ -103,6 +106,8 @@ int mm_init(void)
     /* Extend the empty heap with a free block of CHUNKSIZE bytes */
     if (extend_heap(CHUNKSIZE / WSIZE) == NULL)
         return -1;
+
+    NF_pointer = heap_listp;
     return 0;
 }
 
@@ -137,7 +142,8 @@ void mm_free(void *bp)
     coalesce(bp);
 }
 
-/* 가용상태로 바뀐 힙블록을 받아와, 주변 블록들의 상태에 따라 합체시키는 함수 */
+/* 가용상태로 바뀐 힙블록을 받아와, 주변 블록들의 상태에 따라 합체시키는 함수                   *
+ * 모든 가용상태 : 힙이 늘어날 때 (extend), place시 반으로 분절할 때 (place), free할 때 (free)*/
 static void *coalesce(void *bp)
 {
     size_t prev_alloc = GET_ALLOC(FTRP(PREV_BLKP(bp)));
@@ -146,7 +152,8 @@ static void *coalesce(void *bp)
 
     /* CASE 1 : 이전과 다음 힙블록이 할당중일때 */
     if (prev_alloc && next_alloc)
-        return bp;
+    {
+    }
 
     /* CASE 2 : 다음 힙블록이 가용상태(state : free) */
     else if (prev_alloc && !next_alloc)
@@ -173,7 +180,7 @@ static void *coalesce(void *bp)
         PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));
         bp = PREV_BLKP(bp);
     }
-
+    NF_pointer = bp;
     return bp;
 }
 
@@ -192,16 +199,13 @@ void *mm_malloc(size_t size)
         return NULL;
 
     /* size를 adjusted size로 조정 (정렬조건 + 각종메타데이터를 포함) */
-    if (size <= DSIZE)
-        asize = 2 * DSIZE;
-    else
-        asize = DSIZE * ((size + (DSIZE) + (DSIZE - 1)) / DSIZE);
+    asize = get_adjusted_size(size);
 
     /* 조정된 사이즈에 맞는 가용상태의 리스트 탐색 */
     if ((bp = find_fit(asize)) != NULL)
     {
         place(bp, asize);
-
+        NF_pointer = bp; //  placee하고 나서도 NF 배치가 필요하다
         return bp;
     }
 
@@ -210,20 +214,36 @@ void *mm_malloc(size_t size)
 
     if ((bp = extend_heap(extendsize / WSIZE)) == NULL)
         return NULL;
-    place(bp, asize);
-
+    place(bp, asize); //  placee하고 나서도 NF 배치가 필요하다
+    NF_pointer = bp;  //  placee하고 나서도 NF 배치가 필요하다
     return bp;
 }
 
 static void *find_fit(size_t asize)
 {
-    /* FirstFit search */
-    void *bp;
+    void *bp = NF_pointer;
 
-    for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp))
+    /* NextFit search1 - 저장된 지점부터 찾음 */
+    while (GET_SIZE(HDRP(bp)) > 0) // size가 0인 epilogue만나면 나가짐
     {
         if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp)))) // 할당가능조건
+        {
+            NF_pointer = NEXT_BLKP(bp); // 찾은 후 NF_pointer 업데이트
             return bp;
+        }
+        bp = NEXT_BLKP(bp);
+    }
+
+    /* NextFit search2 - heap의 처음부터 찾음 */
+    bp = heap_listp;
+    while (bp < NF_pointer)
+    {
+        if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp)))) // 할당가능조건
+        {
+            NF_pointer = NEXT_BLKP(bp); // 찾은 후 NF_pointer 업데이트
+            return bp;
+        }
+        bp = NEXT_BLKP(bp);
     }
 
     return NULL;
@@ -243,11 +263,13 @@ static void place(void *bp, size_t asize)
         bp = NEXT_BLKP(bp);
         PUT(HDRP(bp), PACK(csize - asize, 0));
         PUT(FTRP(bp), PACK(csize - asize, 0));
+        coalesce(bp); // 이거 빼도된다는데 왜?
     }
     else
     {
         PUT(HDRP(bp), PACK(csize, 1));
         PUT(FTRP(bp), PACK(csize, 1));
+        bp = NEXT_BLKP(bp);
     }
 }
 
@@ -256,6 +278,7 @@ static void place(void *bp, size_t asize)
 void *mm_realloc(void *ptr, size_t size)
 {
     void *oldptr = ptr;
+
     if (oldptr == NULL) // 포인터가 NULL인 경우 할당만 함
         return mm_malloc(size);
 
@@ -264,6 +287,7 @@ void *mm_realloc(void *ptr, size_t size)
         return NULL;
 
     // copySize = *(size_t *)((char *)oldptr - SIZE_T_SIZE);
+    size_t asize = get_adjusted_size(size);
     size_t copySize = GET_SIZE(HDRP(oldptr)) - DSIZE; //  header에서 payload사이즈 추출
     if (size < copySize)
         copySize = size;
@@ -272,4 +296,17 @@ void *mm_realloc(void *ptr, size_t size)
     mm_free(oldptr);
 
     return newptr;
+}
+
+static size_t get_adjusted_size(old_size)
+{
+    size_t new_size;
+    /* size를 adjusted size로 조정 (정렬조건 + 각종메타데이터를 포함) */
+    if (old_size <= DSIZE)
+        new_size = 2 * DSIZE;
+    else
+        new_size = ALIGN(old_size + DSIZE); // ALIGN사용
+                                            // asize = DSIZE * ((size + (DSIZE) + (DSIZE - 1)) / DSIZE);
+
+    return new_size;
 }

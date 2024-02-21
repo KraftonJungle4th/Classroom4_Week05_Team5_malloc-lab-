@@ -10,7 +10,7 @@
  * comment that gives a high level description of your solution.
  */
 
-/* Implicit FirstFit */
+/* Implicit WorstFit */
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -75,17 +75,18 @@ team_t team = {
 #define NEXT_BLKP(bp) ((char *)(bp) + GET_SIZE(((char *)(bp)-WSIZE)))
 #define PREV_BLKP(bp) ((char *)(bp)-GET_SIZE(((char *)(bp)-DSIZE)))
 
-static char *heap_listp; // 얘는 따로 해야하나?
+/* 커스텀 변수 */
+static char *heap_listp = NULL; // 얘는 따로 해야하나?
 
 /* 함수 프로토타입 선언 */
-int mm_init(void);
+// int mm_init(void);
 static void *extend_heap(size_t words);
-void mm_free(void *bp);
+// void mm_free(void *bp);
 static void *coalesce(void *bp);
-void *mm_malloc(size_t size);
+// void *mm_malloc(size_t size);
 static void *find_fit(size_t asize);
 static void place(void *bp, size_t asize);
-void *mm_realloc(void *ptr, size_t size);
+// void *mm_realloc(void *ptr, size_t size);
 
 /*
  * mm_init - 특정 포인터로 시작하는 배열을 malloc패키지 형태로 포맷. initialize the malloc package.
@@ -103,6 +104,7 @@ int mm_init(void)
     /* Extend the empty heap with a free block of CHUNKSIZE bytes */
     if (extend_heap(CHUNKSIZE / WSIZE) == NULL)
         return -1;
+
     return 0;
 }
 
@@ -146,7 +148,9 @@ static void *coalesce(void *bp)
 
     /* CASE 1 : 이전과 다음 힙블록이 할당중일때 */
     if (prev_alloc && next_alloc)
+    {
         return bp;
+    }
 
     /* CASE 2 : 다음 힙블록이 가용상태(state : free) */
     else if (prev_alloc && !next_alloc)
@@ -195,7 +199,7 @@ void *mm_malloc(size_t size)
     if (size <= DSIZE)
         asize = 2 * DSIZE;
     else
-        asize = DSIZE * ((size + (DSIZE) + (DSIZE - 1)) / DSIZE);
+        asize = ALIGN(size + DSIZE); // 헤더와 풋터를 포함하여 8의 배수로 올림
 
     /* 조정된 사이즈에 맞는 가용상태의 리스트 탐색 */
     if ((bp = find_fit(asize)) != NULL)
@@ -217,16 +221,30 @@ void *mm_malloc(size_t size)
 
 static void *find_fit(size_t asize)
 {
-    /* FirstFit search */
-    void *bp;
+    size_t largest_block_size = -1;
+    void *bp = heap_listp;
+    void *largest_block_bp = bp;
 
-    for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp))
+    // 사용 가능한 메모리 블록을 확인하여 가장 큰 공간을 찾음
+    while (GET_SIZE(HDRP(bp)) > 0) // size가 0인 epilogue만나면 나가짐
     {
         if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp)))) // 할당가능조건
-            return bp;
+        {
+            if (GET_SIZE(HDRP(bp)) > largest_block_size)
+            {
+                largest_block_bp = bp;
+                largest_block_size = GET_SIZE(HDRP(bp));
+            }
+        }
+
+        bp = NEXT_BLKP(bp);
     }
 
-    return NULL;
+    // 공간찾기가 한 번도 이루어 지지 않았으면 -1을 반환
+    if (largest_block_size == -1)
+        return NULL;
+
+    return largest_block_bp;
 }
 
 static void place(void *bp, size_t asize)
@@ -236,6 +254,7 @@ static void place(void *bp, size_t asize)
 
     size_t csize = GET_SIZE(HDRP(bp));
 
+    // 분할
     if ((csize - asize) >= (2 * DSIZE))
     {
         PUT(HDRP(bp), PACK(asize, 1));
@@ -244,6 +263,7 @@ static void place(void *bp, size_t asize)
         PUT(HDRP(bp), PACK(csize - asize, 0));
         PUT(FTRP(bp), PACK(csize - asize, 0));
     }
+    // 분할 X
     else
     {
         PUT(HDRP(bp), PACK(csize, 1));

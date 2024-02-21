@@ -9,6 +9,8 @@
  * NOTE TO STUDENTS: Replace this header comment with your own header
  * comment that gives a high level description of your solution.
  */
+
+/* Implicit NextFit+WorstFit */
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -50,7 +52,7 @@ team_t team = {
 /* 커스텀 */
 #define WSIZE 4 /* Word and header/footer size (Bytes) */
 #define DSIZE 8 /* Double Word size (Bytes) */
-#define CHUNKSIZE (1 << 4)
+#define CHUNKSIZE (1 << 12)
 
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 
@@ -216,29 +218,25 @@ void *mm_malloc(size_t size)
     place(bp, asize);
 
     return bp;
-
-    // int newsize = ALIGN(size + SIZE_T_SIZE);
-    // void *p = mem_sbrk(newsize);
-    // if (p == (void *)-1)
-    //     return NULL;
-    // else
-    // {
-    //     *(size_t *)p = size;
-    //     return (void *)((char *)p + SIZE_T_SIZE);
-    // }
 }
 
 static void *find_fit(size_t asize)
 {
     void *bp = NF_pointer;
+    size_t largest_block_size = -1;
+    void *largest_block_bp = bp;
 
+    // 사용 가능한 메모리 블록을 확인하여 가장 큰 공간을 찾음
     /* NextFit search1 - 저장된 지점부터 찾음 */
     while (GET_SIZE(HDRP(bp)) > 0) // size가 0인 epilogue만나면 나가짐
     {
-        if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp))))
+        /* 최대 블록 사이즈 */
+        if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp))) && (GET_SIZE(HDRP(bp)) > largest_block_size))
         {
             NF_pointer = NEXT_BLKP(bp); // 찾은 후 NF_pointer 업데이트
-            return bp;
+            largest_block_bp = bp;
+            largest_block_size = GET_SIZE(HDRP(bp));
+            return largest_block_bp;
         }
         bp = NEXT_BLKP(bp);
     }
@@ -247,14 +245,21 @@ static void *find_fit(size_t asize)
     bp = heap_listp;
     while (bp < NF_pointer)
     {
-        if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp))))
+        /* 최대 블록 사이즈 */
+        if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp))) && (GET_SIZE(HDRP(bp)) > largest_block_size))
         {
             NF_pointer = NEXT_BLKP(bp); // 찾은 후 NF_pointer 업데이트
-            return bp;
+            largest_block_bp = bp;
+            largest_block_size = GET_SIZE(HDRP(bp));
+            return largest_block_bp;
         }
         bp = NEXT_BLKP(bp);
     }
 
+    // 공간찾기가 한 번도 이루어 지지 않았으면 -1을 반환
+    // 합체해도 되는데 혹시나해서 분리함
+    if (largest_block_size == -1)
+        return NULL;
     return NULL;
 }
 
