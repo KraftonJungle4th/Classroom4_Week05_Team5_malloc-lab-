@@ -7,6 +7,13 @@
 #include "mm.h"
 #include "memlib.h"
 
+team_t team = {
+    "team 5",
+    "sss",
+    "sss",
+    "",
+    ""};
+
 #define ALIGNMENT 8 // 2word 
 
 #define ALIGN(size) (((size) + (ALIGNMENT - 1)) & ~0x7)
@@ -171,6 +178,18 @@ static void *coalesce(void *bp)
 
     return bp; // 병합된 블록의 포인터 반환
 }
+
+// static void *find_fit(size_t asize)
+// {
+//     void *bp = mem_heap_lo() + 2 * WSIZE; // 첫번째 블록(주소: 힙의 첫 부분 + 8bytes)부터 탐색 시작
+//     while (GET_SIZE(HDRP(bp)) > 0)
+//     {
+//         if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp)))) // 가용 상태이고, 사이즈가 적합하면
+//             return bp;                                             // 해당 블록 포인터 리턴
+//         bp = NEXT_BLKP(bp);                                        // 조건에 맞지 않으면 다음 블록으로 이동해서 탐색을 이어감
+//     }
+//     return NULL;
+// }
 
 static void *find_fit(size_t asize)
 {
